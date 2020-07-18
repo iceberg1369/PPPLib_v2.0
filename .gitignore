@@ -1,0 +1,9 @@
+.idea/
+cmake-build-debug/
+cmake-build-release/
+bin/
+log/
+data/
+example/
+venv/
+include/3rdparty

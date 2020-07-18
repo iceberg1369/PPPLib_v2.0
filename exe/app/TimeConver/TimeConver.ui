@@ -1,0 +1,1470 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>968</width>
+    <height>554</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout_9">
+    <item row="0" column="1">
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="font">
+       <font>
+        <family>Arial</family>
+       </font>
+      </property>
+      <property name="currentIndex">
+       <number>1</number>
+      </property>
+      <widget class="QWidget" name="tab">
+       <attribute name="title">
+        <string>Download</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="tab_3">
+       <attribute name="title">
+        <string>Positioning</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_8">
+        <item row="0" column="0">
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <widget class="QGroupBox" name="groupBox">
+            <property name="title">
+             <string>PrcOpt</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_2">
+             <item row="0" column="0">
+              <layout class="QGridLayout" name="gridLayout">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_data_dir">
+                 <property name="text">
+                  <string>Data Dir</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_mode">
+                 <property name="text">
+                  <string>Mode</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="3">
+                <widget class="QLabel" name="label_filter_type">
+                 <property name="text">
+                  <string>Filter Type</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="4">
+                <widget class="QComboBox" name="combo_filter_type">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>forward</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>backward</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>smooth</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <layout class="QHBoxLayout" name="horizontalLayout">
+                 <item>
+                  <widget class="QComboBox" name="combo_mode">
+                   <property name="editable">
+                    <bool>true</bool>
+                   </property>
+                   <item>
+                    <property name="text">
+                     <string>SPP</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>PPP</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>DGPS</string>
+                    </property>
+                   </item>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="label_mode_option">
+                   <property name="text">
+                    <string>Mode Option</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QComboBox" name="combo_mode_option">
+                   <property name="editable">
+                    <bool>true</bool>
+                   </property>
+                   <item>
+                    <property name="text">
+                     <string>STATIC</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>KINE</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>KINE_SIM</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>SPP</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>PPP</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>DGPS</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>PPK</string>
+                    </property>
+                   </item>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item row="0" column="1">
+                <widget class="QLineEdit" name="edit_data_dir"/>
+               </item>
+               <item row="0" column="3">
+                <widget class="QLabel" name="label_process_date">
+                 <property name="text">
+                  <string>Process Date</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="4">
+                <widget class="QDateEdit" name="edit_process_date">
+                 <property name="calendarPopup">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <spacer name="horizontalSpacer_25">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Fixed</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="groupBox_2">
+            <property name="title">
+             <string>GNSSOpt</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_3">
+             <item row="0" column="0">
+              <layout class="QGridLayout" name="gridLayout_4">
+               <property name="verticalSpacing">
+                <number>4</number>
+               </property>
+               <item row="1" column="1">
+                <widget class="QComboBox" name="combo_gps">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>None</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>L1</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>L2</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>L5</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>L1&amp;L2</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>L1&amp;L5</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>L1&amp;L2&amp;L5</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="0" column="5">
+                <spacer name="horizontalSpacer_20">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Fixed</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="1" column="3">
+                <widget class="QLabel" name="label_bd2">
+                 <property name="text">
+                  <string>BD2</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_gps">
+                 <property name="text">
+                  <string>GPS</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="4">
+                <widget class="QLineEdit" name="edit_elevation_mask"/>
+               </item>
+               <item row="0" column="10">
+                <widget class="QComboBox" name="combo_tropospheric_option">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>OFF</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>BRDC</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>SAAS</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="0" column="9">
+                <widget class="QLabel" name="label_tropospheric_option">
+                 <property name="text">
+                  <string>Tropospheric Option</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="10">
+                <spacer name="horizontalSpacer_5">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="3" column="4">
+                <widget class="QComboBox" name="combo_glo">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>None</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>G1</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>G2</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>G1&amp;G2</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="2" column="9">
+                <spacer name="horizontalSpacer_3">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="0" column="7">
+                <widget class="QComboBox" name="combo_number_frequency">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>1</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>2</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>3</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="3" column="3">
+                <widget class="QLabel" name="label_glo">
+                 <property name="text">
+                  <string>GLO</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="6">
+                <widget class="QLabel" name="label_ephemeris">
+                 <property name="text">
+                  <string>Ephemeris</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="6">
+                <spacer name="horizontalSpacer_2">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_data_sample">
+                 <property name="text">
+                  <string>Data Sample</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="10">
+                <spacer name="horizontalSpacer_7">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="2" column="1">
+                <widget class="QComboBox" name="combo_qzs">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>None</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>L1</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>L2</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>L5</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>L1&amp;L2</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>L1&amp;L5</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>L1&amp;L2&amp;L5</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="2" column="7">
+                <widget class="QComboBox" name="combo_ephemeris">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>BRDC</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Precise</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="1" column="7">
+                <widget class="QComboBox" name="combo_bd3">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>None</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B1I</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B2a</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B3I</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B1C</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B1I&amp;B2a</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B1I&amp;B3I</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B1I&amp;B1C</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B1I&amp;B2a&amp;B3I</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B1I&amp;B2a&amp;B1C</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_qzs">
+                 <property name="text">
+                  <string>QZS</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <spacer name="horizontalSpacer_19">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Fixed</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="1" column="9">
+                <widget class="QLabel" name="label_gal">
+                 <property name="text">
+                  <string>GAL</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="3">
+                <widget class="QLabel" name="label_elevation_mask">
+                 <property name="text">
+                  <string>Elevation Mask</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="label_ionospheric_option">
+                 <property name="text">
+                  <string>Ionospheric Option</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="3">
+                <widget class="QLabel" name="label_product_ac">
+                 <property name="text">
+                  <string>Product AC</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="9">
+                <spacer name="horizontalSpacer_6">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="0" column="1">
+                <widget class="QLineEdit" name="edit_data_sample"/>
+               </item>
+               <item row="0" column="6">
+                <widget class="QLabel" name="label_number_frequency">
+                 <property name="text">
+                  <string>Number frequency</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="4">
+                <widget class="QComboBox" name="combo_product_ac">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>BRDC</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>COD</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>WUM</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GFZ</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GBM</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="1" column="4">
+                <widget class="QComboBox" name="combo_bd2">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>None</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B1I</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B2I</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B3I</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B1I&amp;B2I</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B1I&amp;B3I</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>B1I&amp;B2I&amp;B3I</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="3" column="7">
+                <spacer name="horizontalSpacer_4">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="1" column="10">
+                <widget class="QComboBox" name="combo_gal">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>None</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>E1</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>E5a</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>E5b</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>E1&amp;E5a</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>E1&amp;E5b</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>E1&amp;E5a&amp;E5b</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QComboBox" name="combo_ionospheric_option">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>OFF</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>BRDC</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>TEC</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>IF</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>UC</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Constraint</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="1" column="6">
+                <widget class="QLabel" name="label_bd3">
+                 <property name="text">
+                  <string>BD3</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="8">
+                <spacer name="horizontalSpacer_21">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Fixed</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="groupBox_4">
+            <property name="title">
+             <string>AdjOpt</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_5">
+             <item row="0" column="0">
+              <layout class="QGridLayout" name="gridLayout_6">
+               <item row="0" column="1">
+                <widget class="QComboBox" name="combo_estimator">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>LSQ</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>KF</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>Helmert</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="0" column="4">
+                <widget class="QComboBox" name="combo_isb_modeling">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>OFF</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>CT</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PWC</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>RW</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>WN</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="0" column="3">
+                <widget class="QLabel" name="label_isb_modeling">
+                 <property name="text">
+                  <string>ISB Modeling</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_gnss_prn">
+                 <property name="text">
+                  <string>GNSS PRN</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="10">
+                <spacer name="horizontalSpacer_11">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="0" column="9">
+                <widget class="QLabel" name="label_b2b3_isb_modeling">
+                 <property name="text">
+                  <string>B2/B3 ISB Modeling</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <spacer name="horizontalSpacer_22">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Fixed</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="2" column="1">
+                <widget class="QLineEdit" name="edit_gnss_prn1"/>
+               </item>
+               <item row="2" column="4">
+                <widget class="QLineEdit" name="edit_gnss_prn3"/>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_gnss_std">
+                 <property name="text">
+                  <string>GNSS STD</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="7">
+                <spacer name="horizontalSpacer_9">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="2" column="10">
+                <spacer name="horizontalSpacer_15">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="1" column="1">
+                <widget class="QLineEdit" name="edit_gnss_std1"/>
+               </item>
+               <item row="0" column="5">
+                <spacer name="horizontalSpacer_23">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Fixed</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="1" column="4">
+                <widget class="QLineEdit" name="edit_gnss_std3"/>
+               </item>
+               <item row="2" column="6">
+                <spacer name="horizontalSpacer_12">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="1" column="6">
+                <spacer name="horizontalSpacer_8">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_estimator">
+                 <property name="text">
+                  <string>Estimator</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="10">
+                <widget class="QComboBox" name="combo_b2b3isb_modeling">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>OFF</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>CT</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PWC</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>RW</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>WN</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="2" column="9">
+                <spacer name="horizontalSpacer_14">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>68</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="1" column="9">
+                <spacer name="horizontalSpacer_10">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>68</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="0" column="7">
+                <widget class="QComboBox" name="combo_icb_modeling">
+                 <property name="editable">
+                  <bool>true</bool>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>OFF</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>CT</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>PWC</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>RW</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>WN</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="0" column="6">
+                <widget class="QLabel" name="label_icb_modeling">
+                 <property name="text">
+                  <string>ICB Modeling</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="7">
+                <spacer name="horizontalSpacer_13">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="0" column="8">
+                <spacer name="horizontalSpacer_24">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeType">
+                  <enum>QSizePolicy::Fixed</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="1" column="2" colspan="2">
+                <widget class="QLineEdit" name="edit_gnss_std2"/>
+               </item>
+               <item row="2" column="2" colspan="2">
+                <widget class="QLineEdit" name="edit_gnss_prn2"/>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="groupBox_5">
+            <property name="title">
+             <string>QCOpt</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_7">
+             <item row="0" column="0">
+              <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <item>
+                <widget class="QLabel" name="label_cycle_slip_method">
+                 <property name="text">
+                  <string>Cycle Slip Method</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QComboBox" name="combo_cycle_slip_method">
+                 <item>
+                  <property name="text">
+                   <string>OFF</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>MW</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>GF</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_mw_threshold">
+                 <property name="text">
+                  <string>MW Threshold</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="edit_mw_threshold"/>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_gf_threshold">
+                 <property name="text">
+                  <string>GF Threshold</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="edit_gf_threshold"/>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_16">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </item>
+             <item row="1" column="0">
+              <spacer name="verticalSpacer_2">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <item>
+             <spacer name="horizontalSpacer_18">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btn_exe">
+              <property name="font">
+               <font>
+                <family>Arial</family>
+               </font>
+              </property>
+              <property name="text">
+               <string>exe</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_17">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_2">
+       <attribute name="title">
+        <string>Analysis</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_10">
+        <item row="0" column="0">
+         <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,1,0">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_5">
+            <item>
+             <widget class="QLabel" name="label_solution_dir">
+              <property name="text">
+               <string>Solution Dir</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="edit_solution_dir"/>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_27">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btn_analysis">
+              <property name="text">
+               <string>Ananlysis</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_28">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="Canvas" name="widget_plot" native="true"/>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <item>
+             <widget class="QLabel" name="label_position">
+              <property name="text">
+               <string>Position</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="combo_position">
+              <item>
+               <property name="text">
+                <string>ENU</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>E/N/U</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_26">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_4">
+       <attribute name="title">
+        <string>Tools</string>
+       </attribute>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>968</width>
+     <height>18</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuAbout">
+    <property name="title">
+     <string>About</string>
+    </property>
+   </widget>
+   <addaction name="menuAbout"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>Canvas</class>
+   <extends>QWidget</extends>
+   <header>widget_plot.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
