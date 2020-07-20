@@ -122,7 +122,7 @@ namespace PPPLib{
 
     vector<tEpochSatUnit>& cGnssObs::GetGnssObs() {return obs_;}
 
-    tSta* cGnssObs::GetStation() {return &station_;}
+    tStaInfoUnit* cGnssObs::GetStation() {return &station_;}
 
     int* cGnssObs::GetEpochNum() {return &epoch_num;}
 

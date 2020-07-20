@@ -14,6 +14,7 @@ namespace PPPLib {
     const static double CLIGHT=299792458.0;
     const static double D2R=(PI/180.0);
     const static double R2D=(180.0/PI);
+    const static double AS2R=(D2R/3600);
 
     enum TIME_TYPE {
         TIME_TYPE_NONE = 0,
@@ -82,6 +83,7 @@ namespace PPPLib {
     const int GNSS_NUM_EXOBS=1;
     const int MAX_GNSS_OBS_TYPE=36;
     const int MAX_GNSS_FRQ_NUM=6;
+    const int MAX_GNSS_USED_FRQ_NUM=3;
     static const string kSatSysCode="GCERJI";
     static const string kGnssObsCode="CLDS";
 
@@ -136,8 +138,8 @@ namespace PPPLib {
     const int MAX_SAT_NUM=NUM_GPS_SAT+NUM_BDS_SAT+NUM_GAL_SAT+NUM_GLO_SAT+NUM_QZS_SAT+NUM_IRN_SAT;
 
     enum RECEIVER_INDEX {
-        REC_ROVER,
-        REC_BASE
+        REC_ROVER=0,
+        REC_BASE=1
     };
 
     constexpr double MHZ_TO_HZ=1000000.0;
@@ -301,6 +303,15 @@ namespace PPPLib {
             {      "PC",        "PC",      "IQX",      "ABX",    "ABXP",    ""},
             {   "CSLXZ",       "SLX",   "IQXDPZ",    "SLXEZ",        "",    ""},
             {        "",          "",         "",         "",        "",    ""}
+    };
+
+    const int MAX_GNSS_CODE_BIAS_PAIRS=12;
+    const string kGnssCodeBiasPairs[NSYS][MAX_GNSS_CODE_BIAS_PAIRS]{
+            {"C1C-C2W", "C1C-C5Q", "C1C-C5X", "C1W-C2W", "C1C-C1W", "C2C-C2W", "C2W-C2S", "C2W-C2L", "C2W-C2X", "", "", ""},
+            {"C2I-C7I", "C2I-C6I", "C1X-C5X", "C1P-C5P", "C1D-C5D", "C1X-C6I", "C1P-C6I", "C1D-C6I", "C2I-C6I", "C1X-C7Z", "C1X-C8X", ""},
+            {"C1C-C5Q", "C1C-C6C", "C1C-C7Q", "C1C-C8Q", "C1X-C5X", "C1X-C7X", "C1X-C8X", "", "", "", "", ""},
+            {"C1C-C2C", "C1C-C2P", "C1P-C2P", "C1C-C1P", "C2C-C2P", "", "", "", "", "", "", ""},
+            {"C1C-C2L", "C1C-C5X", "C1C-C5Q", "C1X-C2X", "C1X-C5X", "C1C-C1X", "", "", "", "", "", ""},
     };
 
     enum GNSS_OBS {

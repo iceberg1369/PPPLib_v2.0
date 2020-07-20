@@ -46,7 +46,6 @@ namespace PPPLib{
         ~cTime();
 
     public:
-        tTime* GetTime();
         double* GetEpoch();
         string GetTimeStr(int n);
         tMjd* GetMjd();
@@ -56,13 +55,13 @@ namespace PPPLib{
 
         double Time2Gpst(int* week,int* day, int sys);
         cTime* Gpst2Time(int week, double wos, int sys);
-        cTime* Utc2Gpst();
-        cTime* Gpst2Utc();
+        cTime Utc2Gpst();
+        cTime Gpst2Utc();
         cTime Gpst2Bdst() const;
         cTime Bdst2Gpst() const;
         double Utc2Gmst(double ut1_utc);
-        cTime AdjWeek(cTime t);
-        cTime AdjDay(cTime t);
+        cTime* AdjWeek(cTime t);
+        cTime* AdjDay(cTime t);
 
     private:
         cTime *Epoch2Time(const double *ep);
@@ -74,11 +73,13 @@ namespace PPPLib{
         double Time2Sec(cTime& day);
 
     private:
-        tTime t_;
         double epoch_[6];
         string time_str_;
         int doy_;
         tMjd  mjd_;
+
+    public:
+        tTime t_;
     };
 
 

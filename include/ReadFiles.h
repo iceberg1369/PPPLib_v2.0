@@ -10,11 +10,11 @@
 
 namespace PPPLib {
 
-    class ReadFile {
+    class cReadFile {
     public:
-        ReadFile();
-        ReadFile(string file_path);
-        ~ReadFile();
+        cReadFile();
+        cReadFile(string file_path);
+        ~cReadFile();
 
     public:
         bool OpenFile();
@@ -28,11 +28,11 @@ namespace PPPLib {
         ifstream inf_;
     };
 
-    class ReadImu:public ReadFile {
+    class cReadImu:public cReadFile {
     public:
-        ReadImu();
-        ReadImu(string file_path);
-        ~ReadImu();
+        cReadImu();
+        cReadImu(string file_path);
+        ~cReadImu();
 
     private:
         bool DecodeImu();
@@ -50,11 +50,11 @@ namespace PPPLib {
         cImuData imu_data_;
     };
 
-    class ReadPos:public ReadFile {
+    class cReadPos:public cReadFile {
     public:
-        ReadPos();
-        ReadPos(string file_path);
-        ~ReadPos();
+        cReadPos();
+        cReadPos(string file_path);
+        ~cReadPos();
 
     private:
         bool DecodePos();
@@ -66,11 +66,11 @@ namespace PPPLib {
 //        cPosData poss_;
     };
 
-    class ReadRnx:public ReadFile {
+    class cReadRnx:public cReadFile {
     public:
-        ReadRnx();
-        ReadRnx(string file_path);
-        virtual ~ReadRnx();
+        cReadRnx();
+        cReadRnx(string file_path);
+        virtual ~cReadRnx();
 
     public:
         void SetGnssSysMask(int mask);
@@ -110,11 +110,11 @@ namespace PPPLib {
         tGnssSignal signal_={0};
     };
 
-    class ReadGnssObs:public ReadRnx {
+    class cReadGnssObs:public cReadRnx {
         public:
-            ReadGnssObs();
-            ReadGnssObs(string file_path,tNav& nav,RECEIVER_INDEX rcv);
-            ~ReadGnssObs();
+            cReadGnssObs();
+            cReadGnssObs(string file_path,tNav& nav,RECEIVER_INDEX rcv);
+            ~cReadGnssObs();
 
         private:
             static bool CmpEpochSatData(const tSatObsUnit& p1, const tSatObsUnit& p2);
@@ -138,24 +138,162 @@ namespace PPPLib {
             cGnssSignal signal_index[NSYS];
     };
 
-    class ReadGnssNav:public ReadRnx {
+    class cReadGnssBrdEph:public cReadRnx {
     public:
-        ReadGnssNav();
-        ReadGnssNav(string file_path, tNav& nav);
-        ~ReadGnssNav();
+        cReadGnssBrdEph();
+        cReadGnssBrdEph(string file_path, tNav& nav);
+        ~cReadGnssBrdEph();
 
     private:
+        static bool CmpBrdEph(const tBrdEphUnit& p1,const tBrdEphUnit& p2);
+        static bool CmpBrdGloEph(const tBrdGloEphUnit& p1, const tBrdGloEphUnit& p2);
+        bool SortBrdEph();
+        bool SortBrdGloEph();
+        void ClearEphData();
         void DecodeEph(cTime toc, cSat sat, tBrdEphUnit& brd_eph);
-        void DecodeGloEph(cTime toc,cSat sat, tBrdGloEphUnit& glo_eph);
-        bool ReadNavBody();
+        void DecodeGloEph(cTime toc,const cSat& sat,tBrdGloEphUnit& glo_eph);
+        bool ReadBrdBody();
 
     public:
+        tNav* GetGnssNav();
         bool ReadHead() override;
         bool Reading() override;
 
     private:
-        double eph_data_[64];
+        double eph_data_[64]={0};
         tNav nav_;
+    };
+
+    class cReadGnssPreEph:public cReadFile {
+    public:
+        cReadGnssPreEph();
+        cReadGnssPreEph(string file_path,tNav& nav);
+        ~cReadGnssPreEph();
+
+    private:
+        void ReadPreOrbHead();
+        void ReadPreOrbBody();
+        void ReadPreClkHead();
+        void ReadPreClkBody();
+
+    public:
+        void SetGnssSatMask(int mask);
+        void ReadHead(int type);
+        bool Reading(int type);
+
+    private:
+        cTime pre_eph_time_;
+        int num_sat_;
+        int sys_mask_;
+        tNav nav_;
+    };
+
+    class cReadGnssCodeBias:public cReadFile {
+    public:
+        cReadGnssCodeBias();
+        cReadGnssCodeBias(string file_path,tNav& nav);
+        ~cReadGnssCodeBias();
+
+    private:
+        void DecodeCasMgexDcb();
+
+    public:
+        bool Reading() override;
+
+    private:
+        tNav nav_;
+    };
+
+    class cReadGnssErp:public cReadFile {
+    public:
+        cReadGnssErp();
+        cReadGnssErp(string file_path,tNav& nav);
+        ~cReadGnssErp();
+
+    private:
+        void DecodeErpPara();
+
+    public:
+        bool Reading() override;
+
+    private:
+        tNav nav_;
+    };
+
+    class cReadGnssOcean:public cReadFile {
+    public:
+        cReadGnssOcean();
+        cReadGnssOcean(string file_path,tNav& nav,string site,RECEIVER_INDEX idx);
+        ~cReadGnssOcean();
+
+    private:
+        void DecodeOceanPara();
+
+    public:
+        bool Reading() override;
+
+    private:
+        RECEIVER_INDEX index_;
+        string site_name_;
+        tNav nav_;
+    };
+
+    class cReadGnssAntex:public cReadFile {
+    public:
+        cReadGnssAntex();
+        cReadGnssAntex(string file_path,tNav& nav);
+        ~cReadGnssAntex();
+
+    private:
+        int DecodeAntPcv(char* p,int n,double *v);
+        void ReadAntBody();
+
+    public:
+        bool Reading() override;
+
+    private:
+        tNav nav_;
+    };
+
+    class cReadGnssIonex:public cReadFile {
+    public:
+        cReadGnssIonex();
+        cReadGnssIonex(string file_path,tNav& nav);
+        ~cReadGnssIonex();
+
+    private:
+        int DataIndex(int i,int j,int k,const int* ndata);
+        int GetIndex(double val,const double* range);
+        int GetNumItems(const double* range);
+        tTecUnit* AddTec();
+        bool ReadHead() override;
+        void ReadIonBody();
+
+    public:
+        bool Reading() override;
+
+    private:
+        tNav nav_;
+        cTime ion_time_;
+        double factor_,re_;
+        double lats_[3],lons_[3],hgts_[3];
+    };
+
+    class cReadRefSol:public cReadFile {
+    public:
+        cReadRefSol();
+        cReadRefSol(string file_path);
+        ~cReadRefSol();
+
+    private:
+        void ReadRefBody();
+
+    public:
+        vector<tSolInfoUnit> GetRefSols();
+        bool Reading() override;
+
+    private:
+        vector<tSolInfoUnit> ref_sols;
     };
 }
 

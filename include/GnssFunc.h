@@ -67,18 +67,60 @@ namespace PPPLib{
         Vector4d std_vel[MAX_SAT_NUM];
         double clk[MAX_SAT_NUM];
         double std_clk[MAX_SAT_NUM];
-    }tPreEphUnit;
-
+    }tPreOrbUnit;
 
     typedef struct{
-        vector<tBrdEphUnit> brd_eph;
-        vector<tPreEphUnit> pre_eph;
+        cTime t_tag;
+        double clk[MAX_SAT_NUM];
+        float  std[MAX_SAT_NUM];
+    }tPreClkUnit;
+
+    typedef struct{
+        double mjd;
+        double xp,yp;
+        double xpr,ypr;
+        double ut1_utc;
+        double lod;
+    }tErpUnit;
+
+    typedef struct{
+        cSat  sat;
+        cTime ts,te;
+        string ant_type;
+        string ser_code;
+        Vector3d pco[MAX_GNSS_FRQ_NUM*NSYS];
+        double   pcv[MAX_GNSS_FRQ_NUM*NSYS][80*30];
+        double dazi;
+        double zen1,zen2,dzen;
+    }tAntUnit;
+
+    typedef struct{
+        cTime t_tag;
+        int ndata[3]{};
+        double re;
+        double lats[3]{};
+        double lons[3]{};
+        double hgts[3]{};
+        vector<double> data;
+        vector<float>  rms;
+    }tTecUnit;
+
+    typedef struct{
+        vector<tBrdEphUnit>    brd_eph;
         vector<tBrdGloEphUnit> brd_glo_eph;
+        vector<tPreOrbUnit> pre_eph;
+        vector<tPreClkUnit> pre_clk;
+        vector<tErpUnit>erp_paras;
+        vector<tAntUnit>ant_paras;
+        vector<tTecUnit>tec_paras;
+
         int glo_frq_num[GLO_MAX_PRN+1];
         double glo_cp_bias[4];
         int leaps;
         double ion_para[NSYS][8];
         double utc_para[NSYS][4];
+        double code_bias[MAX_SAT_NUM][MAX_GNSS_CODE_BIAS_PAIRS];
+        double ocean_paras[2][6*11];
     }tNav;
 
     typedef struct {
@@ -91,7 +133,7 @@ namespace PPPLib{
         Vector3d del;
         Vector3d apr_pos;
         double ant_hgt;
-    }tSta;
+    }tStaInfoUnit;
 
     typedef struct{
         cSat sat;
@@ -121,7 +163,7 @@ namespace PPPLib{
         cTime* GetEndTime();
         void SetRcvIdx(RECEIVER_INDEX rcv);
         vector<tEpochSatUnit>& GetGnssObs();
-        tSta* GetStation();
+        tStaInfoUnit* GetStation();
         int* GetEpochNum();
 
     private:
@@ -129,8 +171,61 @@ namespace PPPLib{
         cTime ts_,te_;
         int epoch_num;
         vector<tEpochSatUnit> obs_;
-        tSta station_;
+        tStaInfoUnit station_;
     };
+
+    typedef struct{
+        cSat sat;
+        cTime t_tag;
+        int brd_eph_index;
+
+        VectorXd raw_P[MAX_GNSS_USED_FRQ_NUM];
+        VectorXd raw_L[MAX_GNSS_USED_FRQ_NUM];
+        VectorXd cor_P[MAX_GNSS_USED_FRQ_NUM];
+        VectorXd cor_L[MAX_GNSS_USED_FRQ_NUM];
+
+        Vector3d brd_pos;
+        Vector2d brd_clk;  // clk, clk-rate
+        Vector3d pre_pos;
+        Vector2d pre_clk;
+
+        Vector2d trp_dry_delay; // slant_dry,map_dry
+        Vector4d trp_wet_delay; // slant_wet,map_wet,grand_e,grand_n
+        Vector2d ion_delay; // L1_ion, map_ion;
+
+        VectorXd code_bias[MAX_GNSS_USED_FRQ_NUM];
+        double   phase_wp;
+        VectorXd float_amb[MAX_GNSS_USED_FRQ_NUM]; //L1,L2,L5
+
+        VectorXd omc_P[MAX_GNSS_USED_FRQ_NUM];
+        VectorXd omc_L[MAX_GNSS_USED_FRQ_NUM];
+
+        VectorXd prior_res_P[MAX_GNSS_USED_FRQ_NUM];
+        VectorXd prior_res_L[MAX_GNSS_USED_FRQ_NUM];
+        VectorXd post_res_P[MAX_GNSS_USED_FRQ_NUM];
+        VectorXd post_res_L[MAX_GNSS_USED_FRQ_NUM];
+
+        Vector2d el_az;
+        Vector3d if_amb;      //L1_l2, L1_L5, L1_L2_L5
+        Vector2d raw_mw_amb;  //L1_L2, L1_L5
+        Vector2d sm_mw_amb;   //L1_L2, L1_L5
+        Vector2d gf;          //L1_L2, L1_L5
+        Vector2d multipath_comb;
+    }tSatInfoUnit;
+
+    typedef struct {
+        cTime t_tag;
+        Vector3d pos;
+        Vector3d vel;
+        double clk_error[NSYS];
+        double rec_dcb[NSYS];
+        double rec_ifb[NSYS];
+        Vector2d zenith_trp_delay; // dry and wet
+
+        Vector3d att;  //roll pitch yaw
+        Vector3d gyro_bias;
+        Vector3d accl_bias;
+    }tSolInfoUnit;
 
 }
 

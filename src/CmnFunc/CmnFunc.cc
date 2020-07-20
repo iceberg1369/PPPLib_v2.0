@@ -104,10 +104,6 @@ namespace PPPLib{
 
     cTime::~cTime() {}
 
-    tTime* cTime::GetTime() {
-        return &t_;
-    }
-
     double* cTime::GetEpoch() {
         return epoch_;
     }
@@ -269,20 +265,20 @@ namespace PPPLib{
         return this;
     }
 
-    cTime* cTime::Utc2Gpst() {
+    cTime cTime::Utc2Gpst() {
         int i;
         cTime t,t0,tg;
         t=*this;
 
         for(i=0;kUtcLeapSec[i][0]>0;i++){
             if((t.TimeDiff(t0.Epoch2Time(kUtcLeapSec[i])->t_))>=0.0){
-                tg=*this+(-kUtcLeapSec[i][6]);
-                return &tg;
+                tg=t+(-kUtcLeapSec[i][6]);
+                return tg;
             }
         }
     }
 
-    cTime* cTime::Gpst2Utc() {
+    cTime cTime::Gpst2Utc() {
         int i;
         cTime tu,t0;
 
@@ -292,7 +288,7 @@ namespace PPPLib{
             t0.Epoch2Time(kUtcLeapSec[i]);
             if((TimeDiff(t0.t_))>=0.0){
                 *this=tu;
-                return this;
+                return *this;
             }
         }
     }
@@ -320,16 +316,17 @@ namespace PPPLib{
         return fmod(gmst,86400.0)*PI/43200.0; /* 0 <= gmst <= 2*PI */
     }
 
-    cTime cTime::AdjWeek(cTime t) {
+    cTime* cTime::AdjWeek(cTime t) {
         double dt=TimeDiff(t.t_);
-        if(dt<-302400.0) return *this+  604800.0;
-        if(dt> 302400.0) return *this+(-604800.0);
+        if(dt<-302400.0) *this+=604800.0;
+        if(dt> 302400.0) *this+=(-604800.0);
+        return this;
     }
 
-    cTime cTime::AdjDay(cTime t) {
+    cTime* cTime::AdjDay(cTime t) {
         double dt=TimeDiff(t.t_);
-        if(dt<-43200.0) return *this+  86400.0;
-        if(dt> 43200.0) return *this+(-86400.0);
+//        if(dt<-43200.0) return *this+  86400.0;
+//        if(dt> 43200.0) return *this+(-86400.0);
     }
 
     cCoord::cCoord() {

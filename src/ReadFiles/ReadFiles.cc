@@ -6,13 +6,13 @@
 
 namespace PPPLib{
 
-    ReadFile::ReadFile() { }
+    cReadFile::cReadFile() { }
 
-    ReadFile::ReadFile(string file_path):file_(file_path) {}
+    cReadFile::cReadFile(string file_path):file_(file_path) {}
 
-    ReadFile::~ReadFile() {}
+    cReadFile::~cReadFile() {}
 
-    bool ReadFile::OpenFile() {
+    bool cReadFile::OpenFile() {
         inf_.open(file_);
         if(!inf_.is_open()){
             LOG(WARNING)<<"File open error: "<<file_;
@@ -21,23 +21,23 @@ namespace PPPLib{
         return true;
     }
 
-    void ReadFile::CloseFile() {
+    void cReadFile::CloseFile() {
         if(inf_.is_open()){
             inf_.close();
         }
     }
 
-    bool ReadFile::ReadHead() {}
+    bool cReadFile::ReadHead() {}
 
-    bool ReadFile::Reading() {return true;}
+    bool cReadFile::Reading() {return true;}
 
-    ReadImu::ReadImu() {}
+    cReadImu::cReadImu() {}
 
-    ReadImu::ReadImu(string file_path){file_=file_path;}
+    cReadImu::cReadImu(string file_path){file_=file_path;}
 
-    ReadImu::~ReadImu() {}
+    cReadImu::~cReadImu() {}
 
-    bool ReadImu::DecodeImu() {
+    bool cReadImu::DecodeImu() {
         if(imu_data_.imu_type_==IMU_NOVTEL_CPT){
             double a_scale=1.52587890625E-06;
             double g_scale=1.085069444444444E-07;
@@ -54,8 +54,8 @@ namespace PPPLib{
         return true;
     }
 
-    bool ReadImu::DecodeNovatel(double a_scale, double g_scale) {
-        char *seps=",;*";
+    bool cReadImu::DecodeNovatel(double a_scale, double g_scale) {
+        char *seps=(char *)",;*";
         char *token;
         int i,gps_week;
         tImuDataUnit imu_data={0};
@@ -68,11 +68,11 @@ namespace PPPLib{
                 token=strtok(NULL,seps);
                 imu_data.t_tag_.Gpst2Time(gps_week, atof(token),SYS_GPS);
 
-                if(imu_data_.ts_.GetTime()->long_time!=0.0){
-                    if(imu_data.t_tag_.TimeDiff(*imu_data_.ts_.GetTime())<0) continue;
+                if(imu_data_.ts_.t_.long_time!=0.0){
+                    if(imu_data.t_tag_.TimeDiff(imu_data_.ts_.t_)<0) continue;
                 }
-                if(imu_data_.te_.GetTime()->long_time!=0.0){
-                    if(imu_data.t_tag_.TimeDiff(*imu_data_.te_.GetTime())>0) continue;
+                if(imu_data_.te_.t_.long_time!=0.0){
+                    if(imu_data.t_tag_.TimeDiff(imu_data_.te_.t_)>0) continue;
                 }
 
                 for(i=0;i<2;i++) token=strtok(NULL,seps);
@@ -98,10 +98,10 @@ namespace PPPLib{
         return true;
     }
 
-    cImuData* ReadImu::GetImus() {return &imu_data_;}
+    cImuData* cReadImu::GetImus() {return &imu_data_;}
 
-    void ReadImu::SetImuTimeSpan(PPPLib::cTime *ts, PPPLib::cTime *te) {
-        if(ts->TimeDiff(*te->GetTime())>=0){
+    void cReadImu::SetImuTimeSpan(PPPLib::cTime *ts, PPPLib::cTime *te) {
+        if(ts->TimeDiff(te->t_)>=0){
             LOG(WARNING)<<"Wrong time interval setting";
             return;
         }
@@ -110,7 +110,7 @@ namespace PPPLib{
         }
     }
 
-    bool ReadImu::SetImuType(PPPLib::IMU_TYPE type) {
+    bool cReadImu::SetImuType(PPPLib::IMU_TYPE type) {
         if(type==IMU_UNKNOW){
             LOG(ERROR)<<"Unknow imu type";
             return false;
@@ -118,11 +118,11 @@ namespace PPPLib{
         imu_data_.SetImuType(type);
     }
 
-    void ReadImu::SetImuCoordType(PPPLib::IMU_COORD_TYPE type) {
+    void cReadImu::SetImuCoordType(PPPLib::IMU_COORD_TYPE type) {
         imu_data_.SetImuCoordType(type);
     }
 
-    bool ReadImu::Reading() {
+    bool cReadImu::Reading() {
         if(!OpenFile()){
             LOG(ERROR)<<"Open imu file error: "<<file_;
             return false;
@@ -134,7 +134,7 @@ namespace PPPLib{
         return true;
     }
 
-    void ReadImu::OutImu(string out_path) {
+    void cReadImu::OutImu(string out_path) {
         ofstream fout(out_path);
         string sep="   ";
         tImuDataUnit imu_data={0};
@@ -146,13 +146,13 @@ namespace PPPLib{
         }
     }
 
-    ReadPos::ReadPos() {}
+    cReadPos::cReadPos() {}
 
-    ReadPos::ReadPos(string file_path) {file_=file_path;}
+    cReadPos::cReadPos(string file_path) {file_=file_path;}
 
-    ReadPos::~ReadPos() {}
+    cReadPos::~cReadPos() {}
 
-    bool ReadPos::DecodePos() {
+    bool cReadPos::DecodePos() {
         string line_str;
 
         while(getline(inf_,line_str)&&!inf_.eof()){
@@ -160,7 +160,7 @@ namespace PPPLib{
         }
     }
 
-    bool ReadPos::Reading() {
+    bool cReadPos::Reading() {
         if(!OpenFile()){
             LOG(ERROR)<<"Open imu file error: "<<file_;
             return false;
@@ -172,15 +172,15 @@ namespace PPPLib{
         return true;
     }
 
-    ReadRnx::ReadRnx(){}
+    cReadRnx::cReadRnx(){sys_mask_=SYS_ALL;}
 
-    ReadRnx::ReadRnx(string file_path) {file_=file_path;}
+    cReadRnx::cReadRnx(string file_path) {file_=file_path;sys_mask_=SYS_ALL;}
 
-    ReadRnx::~ReadRnx() {}
+    cReadRnx::~cReadRnx() {}
 
-    void ReadRnx::SetGnssSysMask(int mask) {sys_mask_=mask;}
+    void cReadRnx::SetGnssSysMask(int mask) {sys_mask_=mask;}
 
-    bool ReadRnx::ReadRnxHead() {
+    bool cReadRnx::ReadRnxHead() {
 
         while(getline(inf_,line_str_)&&!inf_.eof()){
 
@@ -324,27 +324,27 @@ namespace PPPLib{
         signal_.n=num_signal;
     }
 
-    ReadGnssObs::ReadGnssObs() {sys_mask_=SYS_ALL;}
+    cReadGnssObs::cReadGnssObs() {sys_mask_=SYS_ALL;}
 
-    ReadGnssObs::ReadGnssObs(string file_path,PPPLib::tNav &nav,RECEIVER_INDEX rcv) {
+    cReadGnssObs::cReadGnssObs(string file_path,PPPLib::tNav &nav,RECEIVER_INDEX rcv) {
         file_=file_path;
         gnss_data_.SetRcvIdx(rcv);
         nav_=nav;
         sys_mask_=SYS_ALL;
     }
 
-    ReadGnssObs::~ReadGnssObs() {}
+    cReadGnssObs::~cReadGnssObs() {}
 
-    bool ReadGnssObs::CmpEpochSatData(const PPPLib::tSatObsUnit &p1, const PPPLib::tSatObsUnit &p2) {
+    bool cReadGnssObs::CmpEpochSatData(const PPPLib::tSatObsUnit &p1, const PPPLib::tSatObsUnit &p2) {
         return p1.sat.sat_.no<p2.sat.sat_.no;
     }
 
-    bool ReadGnssObs::SortEpochSatData(PPPLib::tEpochSatUnit& epoch_sat_data) {
+    bool cReadGnssObs::SortEpochSatData(PPPLib::tEpochSatUnit& epoch_sat_data) {
         if(epoch_sat_data.sat_num<=0) return false;
         sort(epoch_sat_data.epoch_data.begin(),epoch_sat_data.epoch_data.end(),CmpEpochSatData);
     }
 
-    int ReadGnssObs::DecodeEpoch(cTime& t, int& obs_flag) {
+    int cReadGnssObs::DecodeEpoch(cTime& t, int& obs_flag) {
         int n=0;
         Str2Int(line_str_.substr(32,3),n);
         if(n<=0) return 0;
@@ -358,7 +358,7 @@ namespace PPPLib{
         return n;
     }
 
-    bool ReadGnssObs::DecodeEpochSatObs(tSatObsUnit& obs) {
+    bool cReadGnssObs::DecodeEpochSatObs(tSatObsUnit& obs) {
         cGnssSignal *gnss_signal={0};
         double val[MAX_GNSS_OBS_TYPE]={0};
         unsigned char lli[MAX_GNSS_OBS_TYPE]={0};
@@ -414,7 +414,7 @@ namespace PPPLib{
         return true;
     }
 
-    int ReadGnssObs::ReadObsBody() {
+    int cReadGnssObs::ReadObsBody() {
         int line_idx=0,num_sat=0,n,obs_flag=0;
         tEpochSatUnit epoch_sat_data={nullptr};
 
@@ -422,8 +422,8 @@ namespace PPPLib{
             tSatObsUnit sat_data={0};
             if(line_idx==0){
                 if((num_sat=DecodeEpoch(epoch_sat_data.obs_time,obs_flag))<=0) continue;
-                if(GetGnssData()->GetStartTime()->TimeDiff(*epoch_sat_data.obs_time.GetTime())>0) continue;
-                if(GetGnssData()->GetEndTime()->TimeDiff(*epoch_sat_data.obs_time.GetTime())<0) continue;
+                if(GetGnssData()->GetStartTime()->TimeDiff(epoch_sat_data.obs_time.t_)>0) continue;
+                if(GetGnssData()->GetEndTime()->TimeDiff(epoch_sat_data.obs_time.t_)<0) continue;
             }
             else if(obs_flag<=2||obs_flag==6){
                 if(DecodeEpochSatObs(sat_data)){
@@ -440,8 +440,8 @@ namespace PPPLib{
         return 0;
     }
 
-    void ReadGnssObs::SetGnssTimeSpan(cTime* ts,cTime* te) {
-        if(ts->TimeDiff(*te->GetTime())>=0){
+    void cReadGnssObs::SetGnssTimeSpan(cTime* ts,cTime* te) {
+        if(ts->TimeDiff(te->t_)>=0){
             LOG(WARNING)<<"Wrong time interval setting";
             return;
         }
@@ -451,17 +451,17 @@ namespace PPPLib{
     }
 
 
-    cGnssObs* ReadGnssObs::GetGnssData() {
+    cGnssObs* cReadGnssObs::GetGnssData() {
         return &gnss_data_;
     }
 
-    tNav * ReadGnssObs::GetGnssNav() {
+    tNav * cReadGnssObs::GetGnssNav() {
         return &nav_;
     }
 
-    bool ReadGnssObs::ReadHead() {
+    bool cReadGnssObs::ReadHead() {
         int i,j,k,num_signal,idx_signal,num_line=0,prn,fcn;
-        tSta *sta=gnss_data_.GetStation();
+        tStaInfoUnit *sta=gnss_data_.GetStation();
 
         if(!ReadRnxHead()) return false;
 
@@ -583,7 +583,7 @@ namespace PPPLib{
 
     }
 
-    bool ReadGnssObs::Reading() {
+    bool cReadGnssObs::Reading() {
         if(!OpenFile()){
             LOG(ERROR)<<"Open gnss obs file error: "<<file_;
             return false;
@@ -602,16 +602,64 @@ namespace PPPLib{
         return true;
     }
 
-    ReadGnssNav::ReadGnssNav() {}
+    cReadGnssBrdEph::cReadGnssBrdEph() {}
 
-    ReadGnssNav::ReadGnssNav(string file_path, PPPLib::tNav &nav) {
+    cReadGnssBrdEph::cReadGnssBrdEph(string file_path, PPPLib::tNav &nav) {
         file_=file_path;
         nav_=nav;
     }
 
-    ReadGnssNav::~ReadGnssNav() {}
+    cReadGnssBrdEph::~cReadGnssBrdEph() {}
 
-    void ReadGnssNav::DecodeEph(PPPLib::cTime toc, PPPLib::cSat sat, PPPLib::tBrdEphUnit &brd_eph) {
+    bool cReadGnssBrdEph::CmpBrdEph(const tBrdEphUnit& p1, const tBrdEphUnit& p2){
+        return p1.ttr.t_.long_time!=p2.ttr.t_.long_time?(int)(p1.ttr.t_.long_time<p2.ttr.t_.long_time):
+               (p1.toe.t_.long_time!=p2.toe.t_.long_time?(int)(p1.toe.t_.long_time<p2.toe.t_.long_time):
+               (p1.sat.sat_.no!=p2.sat.sat_.no?(int)(p1.sat.sat_.no<p2.sat.sat_.no):(int)(p1.code<p2.code)));
+    }
+
+    bool cReadGnssBrdEph::CmpBrdGloEph(const tBrdGloEphUnit &p1, const tBrdGloEphUnit &p2) {
+        return p1.tof.t_.long_time!=p2.tof.t_.long_time?(int)(p1.tof.t_.long_time<p2.tof.t_.long_time):
+               (p1.toe.t_.long_time!=p2.toe.t_.long_time?(int)(p1.toe.t_.long_time<p2.toe.t_.long_time):
+               (p1.sat.sat_.no!=p2.sat.sat_.no?(p1.sat.sat_.no<p2.sat.sat_.no):false));
+
+    }
+
+    bool cReadGnssBrdEph::SortBrdEph() {
+        vector<tBrdEphUnit>& ephs=nav_.brd_eph;
+        if(nav_.brd_eph.size()<=0) return false;
+
+        sort(ephs.begin(),ephs.end(),CmpBrdEph);
+
+        int i,j;
+        for(i=1,j=0;i<ephs.size();i++){
+            if((ephs[i].sat.sat_.no==ephs[j].sat.sat_.no)&&(ephs[i].iode==ephs[j].iode)){
+                __gnu_cxx::__normal_iterator<tBrdEphUnit *, vector<tBrdEphUnit>> iter= ephs.begin()+j;
+                ephs.erase(iter);
+            }
+        }
+        return true;
+    }
+
+    bool cReadGnssBrdEph::SortBrdGloEph() {
+        if(nav_.brd_glo_eph.size()<=0) return false;
+
+        sort(nav_.brd_glo_eph.begin(),nav_.brd_glo_eph.end(),CmpBrdGloEph);
+
+        int i,j;
+        for(i=1,j=0;i<nav_.brd_glo_eph.size();i++){
+            if((nav_.brd_glo_eph[i].sat.sat_.no==nav_.brd_glo_eph[j].sat.sat_.no)&&(nav_.brd_glo_eph[i].iode==nav_.brd_glo_eph[j].iode)){
+                __gnu_cxx::__normal_iterator<tBrdGloEphUnit *, vector<tBrdGloEphUnit>> iter= nav_.brd_glo_eph.begin()+j;
+                nav_.brd_glo_eph.erase(iter);
+            }
+        }
+        return true;
+    }
+
+    void cReadGnssBrdEph::ClearEphData() {
+        for(auto &i:eph_data_) i=0.0;
+    }
+
+    void cReadGnssBrdEph::DecodeEph(PPPLib::cTime toc, PPPLib::cSat sat, PPPLib::tBrdEphUnit &brd_eph) {
         brd_eph.sat=sat;
         brd_eph.toc=toc;
 
@@ -680,44 +728,38 @@ namespace PPPLib{
         if(brd_eph.iodc<0||1023<brd_eph.iodc) brd_eph.svh=-1;
     }
 
-    void ReadGnssNav::DecodeGloEph(PPPLib::cTime toc, PPPLib::cSat sat, PPPLib::tBrdGloEphUnit &glo_eph) {
+    void cReadGnssBrdEph::DecodeGloEph(cTime toc,const cSat& sat,PPPLib::tBrdGloEphUnit &glo_eph) {
         double tow,tod;
         int week,dow;
         cTime tof;
 
         glo_eph.sat=sat;
-        tow=toc.Time2Gpst(&week, &dow,SYS_GPS);
-
+        tow=toc.Time2Gpst(&week,&dow,SYS_GPS);
+        toc.Gpst2Time(week,floor((tow+450.0)/900.0)*900,SYS_GPS);
+        dow=(int)floor(tow/86400.0);
         tod=rnx_ver_<=2.99?eph_data_[2]:fmod(eph_data_[2],86400.0);
         tof.Gpst2Time(week,tod+dow*86400.0,SYS_GPS);
         tof.AdjDay(toc);
-
-        cTime t1,t2;
-        t1=toc;t2=toc;
-        glo_eph.toe.Utc2Gpst();
-        glo_eph.tof.Utc2Gpst();
+        cTime t1=toc,t2=toc;
+        glo_eph.toe=t1.Utc2Gpst();
+        glo_eph.tof=t2.Utc2Gpst();
 
         glo_eph.iode=(int)(fmod(tow+10800.0,86400.0)/900.0+0.5);
-
         glo_eph.taun=-eph_data_[0];
         glo_eph.gamn= eph_data_[1];
-
         glo_eph.pos[0]=eph_data_[3]*1E3; glo_eph.pos[1]=eph_data_[7]*1E3; glo_eph.pos[2]=eph_data_[11]*1E3;
         glo_eph.vel[0]=eph_data_[4]*1E3; glo_eph.vel[1]=eph_data_[8]*1E3; glo_eph.vel[2]=eph_data_[12]*1E3;
         glo_eph.acc[0]=eph_data_[5]*1E3; glo_eph.acc[1]=eph_data_[9]*1E3; glo_eph.acc[2]=eph_data_[13]*1E3;
-
         glo_eph.svh=(int)eph_data_[ 6];
         glo_eph.frq=(int)eph_data_[10];
         glo_eph.age=(int)eph_data_[14];
-
         if (glo_eph.frq>128) glo_eph.frq-=256;
-
         if(glo_eph.frq<GLO_MIN_FREQ||GLO_MAX_FREQ<glo_eph.frq){
             glo_eph.svh=-1;
         }
     }
 
-    bool ReadGnssNav::ReadNavBody() {
+    bool cReadGnssBrdEph::ReadBrdBody() {
         int i=0,j,sp=3,prn=0,flag=0,sys=SYS_GPS;
         string id;
         cSat sat;
@@ -728,7 +770,11 @@ namespace PPPLib{
             if(i==0){
                 if(rnx_ver_>=3.0||sat_sys_==SYS_GAL||sat_sys_==SYS_QZS||sat_sys_==SYS_NONE){
                     id=line_str_.substr(0,3);
+                    if(id=="R01"){
+                        int a=1;
+                    }
                     sat=cSat(id);
+                    sat.SatId2No();
                     sp=4;
                     if(rnx_ver_>=3.0) sys=sat.sat_.sys;
                 }
@@ -752,23 +798,28 @@ namespace PPPLib{
                     else eph_data_[i++]=0.0;
                 }
 
-                if(sys==SYS_GLO&&i>15){
+                if(sys==SYS_GLO&&i>=15){
                     if(!(sys_mask_&sys)) continue;
                     tBrdGloEphUnit glo_eph={0};
                     DecodeGloEph(toc,sat,glo_eph);
                     nav_.brd_glo_eph.push_back(glo_eph);
+                    ClearEphData();
                 }
                 else if(i>=31){
                     if(!(sys_mask_&sys)) continue;
                     tBrdEphUnit eph={0};
                     DecodeEph(toc,sat,eph);
                     nav_.brd_eph.push_back(eph);
+                    ClearEphData();
                 }
             }
         }
+        return true;
     }
 
-    bool ReadGnssNav::ReadHead() {
+    tNav* cReadGnssBrdEph::GetGnssNav() {return &nav_;}
+
+    bool cReadGnssBrdEph::ReadHead() {
         int nline=0,i,j;
 
         if(!ReadRnxHead()) return false;
@@ -851,8 +902,674 @@ namespace PPPLib{
         return false;
     }
 
-    bool ReadGnssNav::Reading() {
-        ReadNavBody();
+    bool cReadGnssBrdEph::Reading() {
+        if(!OpenFile()){
+            LOG(ERROR)<<"Open gnss broadcast ephemeris file error: "<<file_;
+            return false;
+        }
+
+        if(!ReadHead()) return false;
+
+        if(!ReadBrdBody()) return false;
+
+        SortBrdEph();
+        SortBrdGloEph();
+        int a=nav_.brd_eph.size();
+        int b=nav_.brd_glo_eph.size();
+
+        if(OpenFile()) CloseFile();
+        return true;
+    }
+
+    cReadGnssPreEph::cReadGnssPreEph(){}
+
+    cReadGnssPreEph::cReadGnssPreEph(string file_path, PPPLib::tNav &nav) {
+        file_=file_path;
+        nav_=nav;
+        sys_mask_=SYS_ALL;
+    }
+
+    cReadGnssPreEph::~cReadGnssPreEph() {}
+
+    void cReadGnssPreEph::ReadPreOrbHead() {
+        int clm=0;
+        string last_block;
+        num_sat_=0;
+
+        while(getline(inf_,line_str_)&&!inf_.eof()){
+            if(!line_str_.substr(0,1).compare("*")) break;
+            if(clm==0){
+                pre_eph_time_.Str2Time(line_str_.substr(3,28));
+            }
+            else if(!line_str_.substr(0,2).compare("+ ")){
+                if(!last_block.compare("##")||clm==2) Str2Int(line_str_.substr(3,3),num_sat_);
+            }
+            else if(!line_str_.substr(0,2).compare("%c")&&!last_block.compare("++")){
+
+            }
+            else if(!line_str_.substr(0,2).compare("%f")&&!last_block.compare("%c")){
+
+            }
+
+            last_block=line_str_.substr(0,2);
+            clm++;
+        }
+    }
+
+    void cReadGnssPreEph::ReadPreOrbBody() {
+        cTime epoch_t;
+        cSat sat;
+        tPreOrbUnit eph={nullptr};
+
+        while(!inf_.eof()){
+            if(!line_str_.substr(0,3).compare("EOF")) break;
+            if(line_str_[0]!='*'||epoch_t.Str2Time(line_str_.substr(3,28))) continue;
+            nav_.pre_eph.push_back(eph);
+            nav_.pre_eph.back().t_tag=epoch_t;
+            for(int i=0;i<num_sat_&&getline(inf_,line_str_);i++){
+                if(line_str_.length()<4||line_str_[0]!='P') continue;
+                sat=cSat(line_str_.substr(1,3));
+                sat.SatId2No();
+                if(!(sat.sat_.no)) continue;
+                if(!(sat.sat_.sys&sys_mask_)) continue;
+                for(int j=0;j<4;j++){
+                    double std=0.0,val=0.0;
+                    Str2Double(line_str_.substr(4+j*14,14),val);
+                    if(line_str_.length()>=80) Str2Double(line_str_.substr(61+j*3,j<3?2:3),std);
+                    if(line_str_[0]=='P'){
+                        if(val!=0.0&&fabs(val-999999.999999)>=1E-6){
+                            nav_.pre_eph.back().pos[sat.sat_.no-1][j]=val*(j<3?1000.0:1E-6);
+                        }
+                    }
+                }
+            }
+            getline(inf_,line_str_);
+        }
+    }
+
+    void cReadGnssPreEph::ReadPreClkHead() {
+        while(getline(inf_,line_str_)&&!inf_.eof()){
+            if(line_str_.substr(60,13).compare("END OF HEADER")) break;
+        }
+    }
+
+    void cReadGnssPreEph::SetGnssSatMask(int mask) {sys_mask_=mask;}
+
+    void cReadGnssPreEph::ReadHead(int type) {
+        if(type==0) ReadPreOrbHead();
+        else if(type==1) ReadPreClkHead();
+    }
+
+    void cReadGnssPreEph::ReadPreClkBody() {
+        int k=1;
+        double data[2]={0};
+        cTime epoch_t;
+        cSat sat;
+        tPreClkUnit clk={nullptr};
+
+        while(getline(inf_,line_str_)&&!inf_.eof()){
+            if(line_str_.substr(0,2).compare("AS")||epoch_t.Str2Time(line_str_.substr(8,26))) continue;
+            if(nav_.pre_clk.empty()||fabs(epoch_t.TimeDiff(nav_.pre_clk.back().t_tag.t_)>1E-9)){
+                nav_.pre_clk.push_back(clk);
+            }
+            nav_.pre_clk.back().t_tag=epoch_t;
+            sat=cSat(line_str_.substr(3,3));
+            sat.SatId2No();
+            if(!(sat.sat_.sys&sys_mask_)) continue;
+            if(!(sat.sat_.no)) continue;
+            if(line_str_.length()>60) k=2;
+            for(int i=0,j=40;i<k;i++,j+=20) Str2Double(line_str_.substr(j,19),data[i]);
+            nav_.pre_clk.back().clk[sat.sat_.no-1]=data[0];
+            nav_.pre_clk.back().std[sat.sat_.no-1]=(float)data[1];
+        }
+    }
+
+    bool cReadGnssPreEph::Reading(int type) {
+        if(!OpenFile()){
+            LOG(ERROR)<<"Open gnss precise products file error: "<<file_;
+            return false;
+        }
+
+        ReadHead(type);
+        if(type==0){
+            ReadPreOrbBody();
+        }
+        else if(type==1){
+            ReadPreClkBody();
+        }
+
+        if(OpenFile()) CloseFile();
+        return true;
+    }
+
+    cReadGnssCodeBias::cReadGnssCodeBias() {}
+
+    cReadGnssCodeBias::cReadGnssCodeBias(string file_path, PPPLib::tNav &nav) {
+        file_=file_path;
+        nav_=nav;
+    }
+
+    cReadGnssCodeBias::~cReadGnssCodeBias() {}
+
+    void cReadGnssCodeBias::DecodeCasMgexDcb() {
+        cSat sat;
+        string code_pair;
+        double cbias=0.0;
+        int i,j=0;
+
+        while(getline(inf_,line_str_)&&!inf_.eof()){
+            if((!line_str_.compare(1,3,"DSB"))&&(!line_str_.compare(65,2,"ns"))&&
+               (!line_str_.compare(15,4,"    "))){
+                sat=cSat(line_str_.substr(11,3));
+                sat.SatId2No();
+                code_pair=line_str_.substr(25,3)+"-"+line_str_.substr(30,3);
+                Str2Double(line_str_.substr(80,10),cbias);
+                if(sat.sat_.sys==SYS_GPS){
+                    for(i=0;i<MAX_GNSS_CODE_BIAS_PAIRS;i++){
+                        if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_GPS][i]) break;
+                    }
+
+                    nav_.code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
+                }
+                else if(sat.sat_.sys==SYS_BDS){
+                    for(i=0;i<MAX_GNSS_CODE_BIAS_PAIRS;i++){
+                        if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_BDS][i]) break;
+                        if(sat.sat_.prn>18){
+                            if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_BDS][i+2]) break;
+                        }
+                    }
+                    nav_.code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
+                }
+                else if(sat.sat_.sys==SYS_GAL){
+                    for(i=0;i<MAX_GNSS_CODE_BIAS_PAIRS;i++){
+                        if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_GAL][i]) break;
+                    }
+                    nav_.code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
+                }
+                else if(sat.sat_.sys==SYS_GLO){
+                    for(i=0;i<MAX_GNSS_CODE_BIAS_PAIRS;i++){
+                        if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_GLO][i]) break;
+                    }
+                    nav_.code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
+                }
+                else if(sat.sat_.sys==SYS_QZS){
+                    for(i=0;i<MAX_GNSS_CODE_BIAS_PAIRS;i++){
+                        if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_QZS][i]) break;
+                    }
+                    nav_.code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
+                }
+            }
+            else continue;
+        }
+    }
+
+    bool cReadGnssCodeBias::Reading() {
+        if(!OpenFile()){
+            LOG(ERROR)<<"Open gnss code bias file error: "<<file_;
+            return false;
+        }
+
+        DecodeCasMgexDcb();
+
+        if(OpenFile()) CloseFile();
+        return true;
+    }
+
+    cReadGnssErp::cReadGnssErp() {}
+
+    cReadGnssErp::cReadGnssErp(string file_path, PPPLib::tNav &nav) {
+        file_=file_path;
+        nav_=nav;
+    }
+
+    cReadGnssErp::~cReadGnssErp() {}
+
+    void cReadGnssErp::DecodeErpPara() {
+        double v[14]={0};
+        tErpUnit erp0={0};
+
+        while(getline(inf_,line_str_)&&!inf_.eof()){
+            if (sscanf(line_str_.c_str(),"%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
+                       v,v+1,v+2,v+3,v+4,v+5,v+6,v+7,v+8,v+9,v+10,v+11,v+12,v+13)<5)
+                continue;
+            erp0.mjd=v[0];
+            erp0.xp=v[1]*1E-6*AS2R;
+            erp0.yp=v[2]*1E-6*AS2R;
+            erp0.ut1_utc=v[3]*1E-7;
+            erp0.lod=v[4]*1E-7;
+            erp0.xpr=v[12]*1E-6*AS2R;
+            erp0.ypr=v[13]*1E-6*AS2R;
+            nav_.erp_paras.push_back(erp0);
+        }
+    }
+
+    bool cReadGnssErp::Reading() {
+        if(!OpenFile()){
+            LOG(ERROR)<<"Open gnss erp file error: "<<file_;
+            return false;
+        }
+
+        DecodeErpPara();
+
+        if(OpenFile()) CloseFile();
+        return true;
+    }
+
+    cReadGnssOcean::cReadGnssOcean() {}
+
+    cReadGnssOcean::cReadGnssOcean(string file_path, PPPLib::tNav &nav,string site,RECEIVER_INDEX idx) {
+        file_=file_path;
+        nav_=nav;
+        site_name_=site;
+        index_=idx;
+    }
+
+    cReadGnssOcean::~cReadGnssOcean() {}
+
+    void cReadGnssOcean::DecodeOceanPara() {
+        string name="    ";
+        transform(site_name_.begin(),site_name_.begin()+4,name.begin(),::toupper);
+
+        while(getline(inf_,line_str_)&&!inf_.eof()){
+            if(line_str_.size()<2||line_str_.compare(0,2,"$$")==0) continue;
+            if(line_str_.compare(2,4,name)==0){
+                double v[11]={0};
+                int n=0;
+                while(getline(inf_,line_str_)&&!inf_.eof()){
+                    if(line_str_.compare(0,2,"$$")==0) continue;
+                    if (sscanf(line_str_.c_str(),"%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
+                               v,v+1,v+2,v+3,v+4,v+5,v+6,v+7,v+8,v+9,v+10)<11) continue;
+                    for(int i=0;i<11;i++) nav_.ocean_paras[index_][n+i*6]=v[i];
+                    if(++n==6){return;}
+                }
+            }
+        }
+    }
+
+    bool cReadGnssOcean::Reading() {
+        if(!OpenFile()){
+            LOG(ERROR)<<"Open gnss ocean_load file error: "<<file_;
+            return false;
+        }
+
+        DecodeOceanPara();
+
+        if(OpenFile()) CloseFile();
+        return true;
+    }
+
+    cReadGnssAntex::cReadGnssAntex() {}
+
+    cReadGnssAntex::cReadGnssAntex(string file_path, PPPLib::tNav &nav) {
+        file_=file_path;
+        nav_=nav;
+    }
+
+    cReadGnssAntex::~cReadGnssAntex() {}
+
+    int cReadGnssAntex::DecodeAntPcv(char* p,int n,double* v) {
+        int i;
+        for(i=0;i<n;i++) v[i]=0.0;
+        for(i=0,p=strtok(p," ");p&&i<n;p=strtok(NULL," ")){
+            v[i++]=atof(p)*1E-3;
+        }
+        return i;
+    }
+
+    void cReadGnssAntex::ReadAntBody() {
+        int stat=0,frq=0,f,i;
+        tAntUnit ant0={0};
+        string sys;
+
+        while(getline(inf_,line_str_)&&!inf_.eof()){
+            if(line_str_.length()<60||line_str_.find("COMMENT",60)!=string::npos) continue;
+            if(line_str_.find("START OF ANTENNA",60)!=string::npos){
+                nav_.ant_paras.push_back(ant0);stat=1;
+            }
+            if(line_str_.find("END OF ANTENNA",60)!=string::npos) stat=0;
+            if(!stat) continue;
+
+            if(line_str_.find("TYPE / SERIAL NO",60)!=string::npos){
+                nav_.ant_paras.back().ant_type=line_str_.substr(0,20);
+                nav_.ant_paras.back().ser_code=line_str_.substr(20,20);
+                nav_.ant_paras.back().ant_type=StrTrim(nav_.ant_paras.back().ant_type);
+                if(nav_.ant_paras.back().ser_code.compare(3,8,"        ")==0){
+                    nav_.ant_paras.back().sat=cSat(nav_.ant_paras.back().ser_code.substr(0,3));
+                    nav_.ant_paras.back().sat.SatId2No();
+                }
+                nav_.ant_paras.back().ser_code=StrTrim(nav_.ant_paras.back().ser_code);
+            }
+            else if(line_str_.find("VALID FROM",60)!=string::npos){
+                if(!nav_.ant_paras.back().ts.Str2Time(line_str_.substr(0,43))) continue;
+            }
+            else if(line_str_.find("VALID UNTIL",60)!=string::npos){
+                if(!nav_.ant_paras.back().te.Str2Time(line_str_.substr(0,43))) continue;
+            }
+            else if(line_str_.find("DAZI",60)!=string::npos){
+                Str2Double(line_str_.substr(2,6),nav_.ant_paras.back().dazi); continue;
+            }
+            else if(line_str_.find("ZEN1 / ZEN2 / DZEN")!=string::npos) {
+                Str2Double(line_str_.substr(2,6),nav_.ant_paras.back().zen1);
+                Str2Double(line_str_.substr(8,6),nav_.ant_paras.back().zen2);
+                Str2Double(line_str_.substr(14,6),nav_.ant_paras.back().dzen);
+                continue;
+            }
+            else if(line_str_.find("START OF FREQUENCY",60)!=string::npos){
+                if(sscanf(line_str_.c_str()+4,"%d",&f)<1) continue;
+                sys=line_str_[3];
+                if(sys=="G") frq=f;
+                else if(sys=="C"){
+                    if(f==1) frq=f+1*MAX_GNSS_FRQ_NUM;
+                    else if(f==7) frq=2+1*MAX_GNSS_FRQ_NUM;
+                    else if(f==6) frq=3+1*MAX_GNSS_FRQ_NUM;
+                    //TODO 不同版本的atx文件对BDS定义的频率不一样,注意这里的频率匹配
+                }
+                else if(sys=="E"){
+                    if(f==1) frq=f+2*MAX_GNSS_FRQ_NUM;
+                    else if(f==5) frq=2+2*MAX_GNSS_FRQ_NUM;
+                    else if(f==6) frq=3+2*MAX_GNSS_FRQ_NUM;
+                }
+                else if(sys=="R"){
+                    frq=f+3*MAX_GNSS_FRQ_NUM;
+                }
+                else if(sys=="J"){
+                    if(f==1) frq=f+4*MAX_GNSS_FRQ_NUM;
+                    else if(f==2) frq=2+4*MAX_GNSS_FRQ_NUM;
+                    else if(f==5) frq=3+4*MAX_GNSS_FRQ_NUM;
+                }
+                else frq=0;
+            }
+            else if(line_str_.find("END OF FREQUENCY",60)!=string::npos){
+                frq=0;
+            }
+            else if(line_str_.find("NORTH / EAST / UP",60)!=string::npos){
+                double neu[3]={0};
+                if(frq<1) continue;
+                if(sscanf(line_str_.c_str(),"%lf %lf %lf",neu,neu+1,neu+2)<3) continue;
+                nav_.ant_paras.back().pco[frq-1][0]=1E-3*neu[nav_.ant_paras.back().sat.sat_.no?0:1];
+                nav_.ant_paras.back().pco[frq-1][1]=1E-3*neu[nav_.ant_paras.back().sat.sat_.no?1:0];
+                nav_.ant_paras.back().pco[frq-1][2]=1E-3*neu[2];
+            }
+            else if(line_str_.find("NOAZI")!=string::npos){
+                if(frq<1) continue;
+                double dd=(nav_.ant_paras.back().zen2-nav_.ant_paras.back().zen1)/nav_.ant_paras.back().dzen+1;
+                if(dd!=round(dd)||dd<=1){
+                    LOG_N_TIMES(1,WARNING)<<"Number of PCV NOAZI parameter decode error";
+                    continue;
+                }
+                if(nav_.ant_paras.back().dazi==0.0){
+                    i=DecodeAntPcv(const_cast<char*>(line_str_.c_str()+8),(int)dd,nav_.ant_paras.back().pcv[frq-1]);
+                    if(i<=0) {
+                        LOG_N_TIMES(1,WARNING)<<"Number of PCV NOAZI parameter decode error";
+                        continue;
+                    }
+                    else if(i!=(int)dd){
+                        LOG_N_TIMES(1,WARNING)<<"Number of PCV NOAZI parameter decode error";
+                        continue;
+                    }
+                }
+                else{
+                    int id=(int)(360-0)/nav_.ant_paras.back().dazi+1;
+                    for(i=0;i<id;i++){
+                        getline(inf_,line_str_);
+                        int j=DecodeAntPcv(const_cast<char*>(line_str_.c_str()+8),(int)dd,&nav_.ant_paras.back().pcv[frq-1][i*(int)dd]);
+                        if(j<=0){
+                            LOG_N_TIMES(1,WARNING)<<"Number of PCV AZI parameter decode error";
+                            continue;
+                        }
+                        else if(j!=(int)dd){
+                            LOG_N_TIMES(1,WARNING)<<"Number of PCV AZI parameter decode error";
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    bool cReadGnssAntex::Reading() {
+        if(!OpenFile()){
+            LOG(ERROR)<<"Open gnss antex file error: "<<file_;
+            return false;
+        }
+
+        ReadAntBody();
+
+        if(OpenFile()) CloseFile();
+        return true;
+    }
+
+    cReadGnssIonex::cReadGnssIonex() {}
+
+    cReadGnssIonex::cReadGnssIonex(string file_path, PPPLib::tNav &nav) {
+        file_=file_path;
+        nav_=nav;
+    }
+
+    cReadGnssIonex::~cReadGnssIonex() {}
+
+    bool cReadGnssIonex::ReadHead() {
+        double ver=0;
+        if(!inf_.is_open()) return 0;
+        while(getline(inf_,line_str_)&&!inf_.eof()){
+            if (line_str_.length()<60) continue;
+
+            if (line_str_.find("IONEX VERSION / TYPE")!=string::npos){
+                if (line_str_[20]=='I') Str2Double(line_str_.substr(0,8),ver);
+            }
+            else if (line_str_.find("BASE RADIUS")!=string::npos) {
+                Str2Double(line_str_.substr(0,8),re_);
+            }
+            else if (line_str_.find("HGT1 / HGT2 / DHGT")!=string::npos){
+                Str2Double(line_str_.substr(2, 6),hgts_[0]);
+                Str2Double(line_str_.substr(8, 6),hgts_[1]);
+                Str2Double(line_str_.substr(14,6),hgts_[2]);
+            }
+            else if (line_str_.find("LAT1 / LAT2 / DLAT")!=string::npos){
+                Str2Double(line_str_.substr(2, 6),lats_[0]);
+                Str2Double(line_str_.substr(8, 6),lats_[1]);
+                Str2Double(line_str_.substr(14,6),lats_[2]);
+            }
+            else if (line_str_.find("LON1 / LON2 / DLON")!=string::npos) {
+                Str2Double(line_str_.substr(2, 6),lons_[0]);
+                Str2Double(line_str_.substr(8, 6),lons_[1]);
+                Str2Double(line_str_.substr(14,6),lons_[2]);
+            }
+            else if (line_str_.find("EXPONENT")!=string::npos){
+                Str2Double(line_str_.substr(0,6),factor_);
+            }
+            else if (line_str_.find("START OF AUX DATA")!=string::npos&&
+                    line_str_.find("DIFFERENTIAL CODE BIASES")!=string::npos){
+                continue;
+            }
+            else if (line_str_.find("PRN / BIAS / RMS")!=string::npos){
+                continue;
+            }
+            else if (line_str_.find("END OF HEADER")!=string::npos){
+                return ver;
+            }
+        }
+    }
+
+    int cReadGnssIonex::DataIndex(int i, int j, int k, const int *ndata) {
+        if (i<0||ndata[0]<=i||j<0||ndata[1]<=j||k<0||ndata[2]<=k) return -1;
+        return i+ndata[0]*(j+ndata[1]*k);
+    }
+
+    int cReadGnssIonex::GetIndex(double val, const double *range) {
+        if(range[2]==0.0) return 0;
+        if(range[2]>0.0&&(val<range[0]||range[1]<val)) return -1;
+        if(range[2]<0.0&&(val<range[1]||range[0]<val)) return -1;
+        return (int)floor((val-range[0])/range[2]+0.5);
+    }
+
+    int cReadGnssIonex::GetNumItems(const double *range) {
+        return GetIndex(range[1],range)+1;
+    }
+
+    tTecUnit* cReadGnssIonex::AddTec() {
+        tTecUnit tec0;
+        int num_data[3];
+
+        num_data[0]=GetNumItems(lats_);
+        num_data[1]=GetNumItems(lons_);
+        num_data[2]=GetNumItems(hgts_);
+        if(num_data[0]<=1||num_data[1]<=1||num_data[2]<=0) return NULL;
+
+        nav_.tec_paras.push_back(tec0);
+        nav_.tec_paras.back().re=re_;
+        for(int i=0;i<3;i++){
+            nav_.tec_paras.back().ndata[i]=num_data[i];
+            nav_.tec_paras.back().lats[i]=lats_[i];
+            nav_.tec_paras.back().lons[i]=lons_[i];
+            nav_.tec_paras.back().hgts[i]=hgts_[i];
+        }
+        int n=num_data[0]*num_data[1]*num_data[2];
+
+        nav_.tec_paras.back().data.assign(n,0.0);
+        nav_.tec_paras.back().rms.assign(n,0.0);
+
+        for(int i=0;i<n;i++){
+            nav_.tec_paras.back().data[i]=0.0;
+            nav_.tec_paras.back().rms[i]=0.0f;
+        }
+        return &nav_.tec_paras.back();
+    }
+
+    void cReadGnssIonex::ReadIonBody() {
+        tTecUnit *tec=nullptr;
+        int flag=0;
+
+        while(getline(inf_,line_str_)&&!inf_.eof()){
+            if(line_str_.length()<60) continue;
+            if(line_str_.find("START OF TEC MAP")!=string::npos){
+                tec = AddTec();
+                if(tec) flag=1;
+            }
+            else if(line_str_.find("END OF TEC MAP")!=string::npos){
+                flag=0;tec=nullptr;
+            }
+            else if(line_str_.find("START OF RMS MAP")!=string::npos){
+                flag=2;tec=nullptr;
+            }
+            else if(line_str_.find("END OF RMS MAP")!=string::npos){
+                flag=0;tec=nullptr;
+            }
+            else if(line_str_.find("EPOCH OF CURRENT MAP")!=string::npos){
+                if(ion_time_.Str2Time(line_str_.substr(0,36))) continue;
+                if(flag==2){
+                    for(int i=nav_.tec_paras.size()-1;i>=0;i--){
+                        if(fabs(ion_time_.TimeDiff(nav_.tec_paras[i].t_tag.t_))>=1.0) continue;
+                        tec=&nav_.tec_paras[i];
+                        break;
+                    }
+                }
+                else if(tec) tec->t_tag=ion_time_;
+            }
+            else if(line_str_.find("LAT/LON1/LON2/DLON/H")!=string::npos&&tec){
+                double lat,lon[3],hgt,x;
+                Str2Double(line_str_.substr(2,6), lat);
+                Str2Double(line_str_.substr(8,6), lon[0]);
+                Str2Double(line_str_.substr(14,6),lon[1]);
+                Str2Double(line_str_.substr(20,6),lon[2]);
+                Str2Double(line_str_.substr(26,6),hgt);
+                int i=GetIndex(lat,tec->lats);
+                int k=GetIndex(hgt,tec->hgts);
+                int n=GetNumItems(lon);
+
+                for (int m=0;m<n;m++) {
+                    int index;
+                    if (m%16==0&&!getline(inf_,line_str_)) break;
+                    int j=GetIndex(lon[0]+lon[2]*m,tec->lons);
+                    if ((index=DataIndex(i,j,k,tec->ndata))<0) continue;
+                    Str2Double(line_str_.substr(m%16*5,5),x);
+                    if (x==9999.0) continue;
+                    if (flag==1) tec->data[index]=x*pow(10.0,factor_);
+                    else tec->rms[index]=(float)(x*pow(10.0,factor_));
+                }
+            }
+        }
+    }
+
+    bool cReadGnssIonex::Reading() {
+        if(!OpenFile()){
+            LOG(ERROR)<<"Open gnss ionex file error: "<<file_;
+            return false;
+        }
+
+        if(!ReadHead()) return false;
+
+        ReadIonBody();
+
+        if(OpenFile()) CloseFile();
+        return true;
+    }
+
+    cReadRefSol::cReadRefSol() {}
+
+    cReadRefSol::cReadRefSol(string file_path) {file_=file_path;}
+
+    cReadRefSol::~cReadRefSol() {}
+
+    void cReadRefSol::ReadRefBody() {
+        int i,gpsw;
+        double sec;
+        char *seps=(char *) ", ";
+        char *token;
+        tSolInfoUnit sol;
+
+        while(getline(inf_,line_str_)&&!inf_.eof()){
+            if(48>=line_str_[1]||line_str_[1]>=57) continue;
+            token=strtok((char *)line_str_.c_str(),seps);
+            gpsw=atoi(token);
+            token=strtok(NULL,seps);
+            sec=atof(token);
+            sol.t_tag.Gpst2Time(gpsw,sec,SYS_GPS);
+
+            for(i=0;i<3;i++){
+                token=strtok(NULL,seps);
+                sol.pos[i]=atof(token);
+            }
+            for(i=0;i<3;i++){
+                token=strtok(NULL,seps);
+                sol.vel[i]=atof(token);
+            }
+            for(i=0;i<3;i++){
+                token=strtok(NULL,seps);
+                sol.att[i]=atof(token)*D2R;
+            }
+            for(i=0;i<3;i++){
+                if(sol.att[i]<0.0) sol.att[i]+=360*D2R;
+            }
+            token=strtok(NULL,seps);
+            sol.accl_bias[0]=atof(token);
+            token=strtok(NULL,seps);
+            sol.accl_bias[1]=atof(token);
+            token=strtok(NULL,seps);
+            sol.accl_bias[2]=atof(token);
+            token=strtok(NULL,seps);
+            sol.gyro_bias[0]=atof(token);
+            token=strtok(NULL,seps);
+            sol.gyro_bias[1]=atof(token);
+            token=strtok(NULL,seps);
+            sol.gyro_bias[2]=atof(token);
+            ref_sols.push_back(sol);
+        }
+
+    }
+
+    vector<tSolInfoUnit> cReadRefSol::GetRefSols() {return ref_sols;}
+
+    bool cReadRefSol::Reading() {
+        if(!OpenFile()){
+            LOG(ERROR)<<"Open reference solution file error: "<<file_;
+            return false;
+        }
+
+        ReadRefBody();
+
+        if(OpenFile()) CloseFile();
+        return true;
     }
 
 }
