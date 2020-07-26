@@ -178,7 +178,9 @@ namespace PPPLib{
 
     cReadRnx::~cReadRnx() {}
 
-    void cReadRnx::SetGnssSysMask(int mask) {sys_mask_=mask;}
+    void cReadRnx::SetGnssSysMask(int mask) {
+        sys_mask_=mask;
+    }
 
     bool cReadRnx::ReadRnxHead() {
 
@@ -324,13 +326,13 @@ namespace PPPLib{
         signal_.n=num_signal;
     }
 
-    cReadGnssObs::cReadGnssObs() {sys_mask_=SYS_ALL;}
+    cReadGnssObs::cReadGnssObs() {}
 
-    cReadGnssObs::cReadGnssObs(string file_path,PPPLib::tNav &nav,RECEIVER_INDEX rcv) {
+    cReadGnssObs::cReadGnssObs(string file_path,PPPLib::tNav& nav,cGnssObs& obss,RECEIVER_INDEX rcv) {
         file_=file_path;
-        gnss_data_.SetRcvIdx(rcv);
-        nav_=nav;
-        sys_mask_=SYS_ALL;
+        gnss_data_=&obss;
+        gnss_data_->SetRcvIdx(rcv);
+        nav_=&nav;
     }
 
     cReadGnssObs::~cReadGnssObs() {}
@@ -422,8 +424,12 @@ namespace PPPLib{
             tSatObsUnit sat_data={0};
             if(line_idx==0){
                 if((num_sat=DecodeEpoch(epoch_sat_data.obs_time,obs_flag))<=0) continue;
-                if(GetGnssData()->GetStartTime()->TimeDiff(epoch_sat_data.obs_time.t_)>0) continue;
-                if(GetGnssData()->GetEndTime()->TimeDiff(epoch_sat_data.obs_time.t_)<0) continue;
+                if(GetGnssData()->GetStartTime()->t_.long_time!=0.0){
+                    if(GetGnssData()->GetStartTime()->TimeDiff(epoch_sat_data.obs_time.t_)>0) continue;
+                }
+                if(GetGnssData()->GetEndTime()->t_.long_time!=0.0){
+                    if(GetGnssData()->GetEndTime()->TimeDiff(epoch_sat_data.obs_time.t_)<0) continue;
+                }
             }
             else if(obs_flag<=2||obs_flag==6){
                 if(DecodeEpochSatObs(sat_data)){
@@ -433,7 +439,7 @@ namespace PPPLib{
             if(++line_idx>num_sat){
                 epoch_sat_data.sat_num=epoch_sat_data.epoch_data.size();
                 SortEpochSatData(epoch_sat_data);
-                gnss_data_.GetGnssObs().push_back(epoch_sat_data);
+                gnss_data_->GetGnssObs().push_back(epoch_sat_data);
                 return num_sat;
             }
         }
@@ -446,22 +452,22 @@ namespace PPPLib{
             return;
         }
         else{
-            gnss_data_.SetTimeSpan(ts,te);
+            gnss_data_->SetTimeSpan(ts,te);
         }
     }
 
 
     cGnssObs* cReadGnssObs::GetGnssData() {
-        return &gnss_data_;
+        return gnss_data_;
     }
 
     tNav * cReadGnssObs::GetGnssNav() {
-        return &nav_;
+        return nav_;
     }
 
     bool cReadGnssObs::ReadHead() {
         int i,j,k,num_signal,idx_signal,num_line=0,prn,fcn;
-        tStaInfoUnit *sta=gnss_data_.GetStation();
+        tStaInfoUnit *sta=gnss_data_->GetStation();
 
         if(!ReadRnxHead()) return false;
 
@@ -546,23 +552,23 @@ namespace PPPLib{
                     string b=line_str_.substr(7*i+8,2);
                     Str2Int(line_str_.substr(7*i+5,2),prn);
                     Str2Int(line_str_.substr(7*i+8,2),fcn);
-                    if (1<=prn&&prn<=GLO_MAX_PRN) nav_.glo_frq_num[prn-1]=fcn+8;
+                    if (1<=prn&&prn<=GLO_MAX_PRN) nav_->glo_frq_num[prn-1]=fcn+8;
                 }
             }
             else if (line_str_.find("GLONASS COD/PHS/BIS" )!=string::npos && &nav_) {  /* ver.3.02 */
                 for (i=0;i<4;i++) {
                     if      (line_str_.compare(13*i+1,3,"C1C"))
-                        Str2Double(line_str_.substr(13*i+5,8), nav_.glo_cp_bias[0]);
+                        Str2Double(line_str_.substr(13*i+5,8), nav_->glo_cp_bias[0]);
                     else if (line_str_.compare(13*i+1,3,"C1P"))
-                        Str2Double(line_str_.substr(13*i+5,8),nav_.glo_cp_bias[1]);
+                        Str2Double(line_str_.substr(13*i+5,8),nav_->glo_cp_bias[1]);
                     else if (line_str_.compare(13*i+1,3,"C2C"))
-                        Str2Double(line_str_.substr(13*i+5,8),nav_.glo_cp_bias[2]);
+                        Str2Double(line_str_.substr(13*i+5,8),nav_->glo_cp_bias[2]);
                     else if (line_str_.compare(13*i+1,3,"C2P"))
-                        Str2Double(line_str_.substr(13*i+5,8),nav_.glo_cp_bias[3]);
+                        Str2Double(line_str_.substr(13*i+5,8),nav_->glo_cp_bias[3]);
                 }
             }
             else if (line_str_.find("LEAP SECONDS")!=string::npos && &nav_) {/* opt */
-                Str2Int(line_str_.substr(0,6),nav_.leaps);
+                Str2Int(line_str_.substr(0,6),nav_->leaps);
             }
             else if (line_str_.find("# OF SALTELLITES")!=string::npos) continue;/* opt */
             else if (line_str_.find("PRN / # OF OBS"  )!=string::npos) continue;/* opt */
@@ -591,12 +597,18 @@ namespace PPPLib{
 
         if(!ReadHead()) return false;
 
-        int epoch_sat_num;
+        int epoch_sat_num=0;
         while((epoch_sat_num=ReadObsBody())>=0){
             if(inf_.eof()) break;
         }
 
-        *gnss_data_.GetEpochNum()=gnss_data_.GetGnssObs().size();
+        gnss_data_->epoch_num=gnss_data_->GetGnssObs().size();
+        if(gnss_data_->GetStartTime()->t_.long_time==0.0){
+            gnss_data_->GetStartTime()->t_=gnss_data_->GetGnssObs()[0].obs_time.t_;
+        }
+        if(gnss_data_->GetEndTime()->t_.long_time==0.0){
+            gnss_data_->GetEndTime()->t_=gnss_data_->GetGnssObs().back().obs_time.t_;
+        }
 
         if(OpenFile()) CloseFile();
         return true;
@@ -606,7 +618,7 @@ namespace PPPLib{
 
     cReadGnssBrdEph::cReadGnssBrdEph(string file_path, PPPLib::tNav &nav) {
         file_=file_path;
-        nav_=nav;
+        nav_=&nav;
     }
 
     cReadGnssBrdEph::~cReadGnssBrdEph() {}
@@ -625,8 +637,8 @@ namespace PPPLib{
     }
 
     bool cReadGnssBrdEph::SortBrdEph() {
-        vector<tBrdEphUnit>& ephs=nav_.brd_eph;
-        if(nav_.brd_eph.size()<=0) return false;
+        vector<tBrdEphUnit>& ephs=nav_->brd_eph;
+        if(nav_->brd_eph.size()<=0) return false;
 
         sort(ephs.begin(),ephs.end(),CmpBrdEph);
 
@@ -641,15 +653,15 @@ namespace PPPLib{
     }
 
     bool cReadGnssBrdEph::SortBrdGloEph() {
-        if(nav_.brd_glo_eph.size()<=0) return false;
+        if(nav_->brd_glo_eph.size()<=0) return false;
 
-        sort(nav_.brd_glo_eph.begin(),nav_.brd_glo_eph.end(),CmpBrdGloEph);
+        sort(nav_->brd_glo_eph.begin(),nav_->brd_glo_eph.end(),CmpBrdGloEph);
 
         int i,j;
-        for(i=1,j=0;i<nav_.brd_glo_eph.size();i++){
-            if((nav_.brd_glo_eph[i].sat.sat_.no==nav_.brd_glo_eph[j].sat.sat_.no)&&(nav_.brd_glo_eph[i].iode==nav_.brd_glo_eph[j].iode)){
-                __gnu_cxx::__normal_iterator<tBrdGloEphUnit *, vector<tBrdGloEphUnit>> iter= nav_.brd_glo_eph.begin()+j;
-                nav_.brd_glo_eph.erase(iter);
+        for(i=1,j=0;i<nav_->brd_glo_eph.size();i++){
+            if((nav_->brd_glo_eph[i].sat.sat_.no==nav_->brd_glo_eph[j].sat.sat_.no)&&(nav_->brd_glo_eph[i].iode==nav_->brd_glo_eph[j].iode)){
+                __gnu_cxx::__normal_iterator<tBrdGloEphUnit *, vector<tBrdGloEphUnit>> iter= nav_->brd_glo_eph.begin()+j;
+                nav_->brd_glo_eph.erase(iter);
             }
         }
         return true;
@@ -683,7 +695,7 @@ namespace PPPLib{
             brd_eph.code=(int)eph_data_[20];
             brd_eph.svh =(int)eph_data_[24];
             brd_eph.sva =0;
-            brd_eph.tgd[0]=eph_data_[25];
+            brd_eph.tgd[0]=eph_data_[25]; //L1_L2
         }
         else if(sat.sat_.sys==SYS_GAL){
             brd_eph.iode=(int)eph_data_[3];
@@ -694,8 +706,8 @@ namespace PPPLib{
             brd_eph.code=(int)eph_data_[20];
             brd_eph.svh =(int)eph_data_[24];
             brd_eph.sva=0;
-            brd_eph.tgd[0]=eph_data_[25];
-            brd_eph.tgd[1]=eph_data_[26];
+            brd_eph.tgd[0]=eph_data_[25]; //E1_E5a
+            brd_eph.tgd[1]=eph_data_[26]; //E1_E5b
         }
         else if(sat.sat_.sys==SYS_BDS){
             cTime toc_temp=toc;
@@ -710,8 +722,8 @@ namespace PPPLib{
             brd_eph.ttr.AdjWeek(toc);
             brd_eph.svh=(int)eph_data_[24];
             brd_eph.sva=0;
-            brd_eph.tgd[0]=eph_data_[25];
-            brd_eph.tgd[1]=eph_data_[26];
+            brd_eph.tgd[0]=eph_data_[25]; //B1I_B3I
+            brd_eph.tgd[1]=eph_data_[26]; //B2I_B3I
         }
         else if(sat.sat_.sys==SYS_IRN){
             brd_eph.iode=(int)eph_data_[3];
@@ -802,14 +814,14 @@ namespace PPPLib{
                     if(!(sys_mask_&sys)) continue;
                     tBrdGloEphUnit glo_eph={0};
                     DecodeGloEph(toc,sat,glo_eph);
-                    nav_.brd_glo_eph.push_back(glo_eph);
+                    nav_->brd_glo_eph.push_back(glo_eph);
                     ClearEphData();
                 }
                 else if(i>=31){
                     if(!(sys_mask_&sys)) continue;
                     tBrdEphUnit eph={0};
                     DecodeEph(toc,sat,eph);
-                    nav_.brd_eph.push_back(eph);
+                    nav_->brd_eph.push_back(eph);
                     ClearEphData();
                 }
             }
@@ -817,7 +829,7 @@ namespace PPPLib{
         return true;
     }
 
-    tNav* cReadGnssBrdEph::GetGnssNav() {return &nav_;}
+    tNav* cReadGnssBrdEph::GetGnssNav() {return nav_;}
 
     bool cReadGnssBrdEph::ReadHead() {
         int nline=0,i,j;
@@ -828,73 +840,73 @@ namespace PPPLib{
 
             if (line_str_.find("IONOSPHERIC CORR",60)!=string::npos) { /* opt ver.3 */
                 if (line_str_.compare(0,4,"GPSA")==0) {
-                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_.ion_para[SYS_INDEX_GPS][i]);
+                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_->ion_para[SYS_INDEX_GPS][i]);
                 }
                 else if (line_str_.compare(0,4,"GPSB")==0) {
-                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_.ion_para[SYS_INDEX_GPS][i+4]);
+                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_->ion_para[SYS_INDEX_GPS][i+4]);
                 }
                 else if (line_str_.compare(0,3,"GAL")==0) {
-                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_.ion_para[SYS_INDEX_GAL][i]);
+                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_->ion_para[SYS_INDEX_GAL][i]);
                 }
                 else if (line_str_.compare(0,4,"QZSA")==0) { /* v.3.02 */
-                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_.ion_para[SYS_INDEX_QZS][i]);
+                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_->ion_para[SYS_INDEX_QZS][i]);
                 }
                 else if (line_str_.compare(0,4,"QZSB")==0) { /* v.3.02 */
-                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_.ion_para[SYS_INDEX_QZS][i+4]);
+                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_->ion_para[SYS_INDEX_QZS][i+4]);
                 }
                 else if (line_str_.compare(0,4,"BDSA")==0) { /* v.3.02 */
-                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_.ion_para[SYS_INDEX_BDS][i]);
+                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_->ion_para[SYS_INDEX_BDS][i]);
                 }
                 else if (line_str_.compare(0,4,"BDSB")==0) { /* v.3.02 */
-                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_.ion_para[SYS_INDEX_BDS][i+4]);
+                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_->ion_para[SYS_INDEX_BDS][i+4]);
                 }
                 else if (line_str_.compare(0,4,"IRNA")==0) { /* v.3.03 */
-                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_.ion_para[SYS_INDEX_IRN][i]);
+                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_->ion_para[SYS_INDEX_IRN][i]);
                 }
                 else if (line_str_.compare(0,4,"IRNB")==0) { /* v.3.03 */
-                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_.ion_para[SYS_INDEX_IRN][i+4]);
+                    for (i=0,j=5;i<4;i++,j+=12) Str2Double(line_str_.substr(j,12),nav_->ion_para[SYS_INDEX_IRN][i+4]);
                 }
             }
             else if (line_str_.find("TIME SYSTEM CORR",60)!=string::npos) { /* opt ver.3 */
                 if (line_str_.compare(0,4,"GPUT")==0) {
-                    Str2Double(line_str_.substr( 5,17),nav_.utc_para[SYS_INDEX_GPS][0]);
-                    Str2Double(line_str_.substr(22,16),nav_.utc_para[SYS_INDEX_GPS][1]);
-                    Str2Double(line_str_.substr(38, 7),nav_.utc_para[SYS_INDEX_GPS][2]);
-                    Str2Double(line_str_.substr(45, 5),nav_.utc_para[SYS_INDEX_GPS][3]);
+                    Str2Double(line_str_.substr( 5,17),nav_->utc_para[SYS_INDEX_GPS][0]);
+                    Str2Double(line_str_.substr(22,16),nav_->utc_para[SYS_INDEX_GPS][1]);
+                    Str2Double(line_str_.substr(38, 7),nav_->utc_para[SYS_INDEX_GPS][2]);
+                    Str2Double(line_str_.substr(45, 5),nav_->utc_para[SYS_INDEX_GPS][3]);
                 }
                 else if (line_str_.compare(0,4,"GLUT")==0) {
-                    Str2Double(line_str_.substr( 5,17),nav_.utc_para[SYS_INDEX_GLO][0]);
-                    Str2Double(line_str_.substr(22,16),nav_.utc_para[SYS_INDEX_GLO][1]);
-                    Str2Double(line_str_.substr(38, 7),nav_.utc_para[SYS_INDEX_GLO][2]);
-                    Str2Double(line_str_.substr(45, 5),nav_.utc_para[SYS_INDEX_GLO][3]);
+                    Str2Double(line_str_.substr( 5,17),nav_->utc_para[SYS_INDEX_GLO][0]);
+                    Str2Double(line_str_.substr(22,16),nav_->utc_para[SYS_INDEX_GLO][1]);
+                    Str2Double(line_str_.substr(38, 7),nav_->utc_para[SYS_INDEX_GLO][2]);
+                    Str2Double(line_str_.substr(45, 5),nav_->utc_para[SYS_INDEX_GLO][3]);
                 }
                 else if (line_str_.compare(0,4,"GAUT")==0) { /* v.3.02 */
-                    Str2Double(line_str_.substr( 5,17),nav_.utc_para[SYS_INDEX_GAL][0]);
-                    Str2Double(line_str_.substr(22,16),nav_.utc_para[SYS_INDEX_GAL][1]);
-                    Str2Double(line_str_.substr(38, 7),nav_.utc_para[SYS_INDEX_GAL][2]);
-                    Str2Double(line_str_.substr(45, 5),nav_.utc_para[SYS_INDEX_GAL][3]);
+                    Str2Double(line_str_.substr( 5,17),nav_->utc_para[SYS_INDEX_GAL][0]);
+                    Str2Double(line_str_.substr(22,16),nav_->utc_para[SYS_INDEX_GAL][1]);
+                    Str2Double(line_str_.substr(38, 7),nav_->utc_para[SYS_INDEX_GAL][2]);
+                    Str2Double(line_str_.substr(45, 5),nav_->utc_para[SYS_INDEX_GAL][3]);
                 }
                 else if (line_str_.compare(0,4,"QZUT")==0) { /* v.3.02 */
-                    Str2Double(line_str_.substr( 5,17),nav_.utc_para[SYS_INDEX_GAL][0]);
-                    Str2Double(line_str_.substr(22,16),nav_.utc_para[SYS_INDEX_GAL][1]);
-                    Str2Double(line_str_.substr(38, 7),nav_.utc_para[SYS_INDEX_GAL][2]);
-                    Str2Double(line_str_.substr(45, 5),nav_.utc_para[SYS_INDEX_GAL][3]);
+                    Str2Double(line_str_.substr( 5,17),nav_->utc_para[SYS_INDEX_GAL][0]);
+                    Str2Double(line_str_.substr(22,16),nav_->utc_para[SYS_INDEX_GAL][1]);
+                    Str2Double(line_str_.substr(38, 7),nav_->utc_para[SYS_INDEX_GAL][2]);
+                    Str2Double(line_str_.substr(45, 5),nav_->utc_para[SYS_INDEX_GAL][3]);
                 }
                 else if (line_str_.compare(0,4,"BDUT")==0) { /* v.3.02 */
-                    Str2Double(line_str_.substr( 5,17),nav_.utc_para[SYS_INDEX_BDS][2]);
-                    Str2Double(line_str_.substr(22,16),nav_.utc_para[SYS_INDEX_BDS][2]);
-                    Str2Double(line_str_.substr(38, 7),nav_.utc_para[SYS_INDEX_BDS][2]);
-                    Str2Double(line_str_.substr(45, 5),nav_.utc_para[SYS_INDEX_BDS][3]);
+                    Str2Double(line_str_.substr( 5,17),nav_->utc_para[SYS_INDEX_BDS][2]);
+                    Str2Double(line_str_.substr(22,16),nav_->utc_para[SYS_INDEX_BDS][2]);
+                    Str2Double(line_str_.substr(38, 7),nav_->utc_para[SYS_INDEX_BDS][2]);
+                    Str2Double(line_str_.substr(45, 5),nav_->utc_para[SYS_INDEX_BDS][3]);
                 }
                 else if (line_str_.compare(0,4,"IRUT")==0) { /* v.3.03 */
-                    Str2Double(line_str_.substr( 5,17),nav_.utc_para[SYS_INDEX_IRN][0]);
-                    Str2Double(line_str_.substr(22,16),nav_.utc_para[SYS_INDEX_IRN][1]);
-                    Str2Double(line_str_.substr(38, 7),nav_.utc_para[SYS_INDEX_IRN][2]);
-                    Str2Double(line_str_.substr(45, 5),nav_.utc_para[SYS_INDEX_IRN][3]);
+                    Str2Double(line_str_.substr( 5,17),nav_->utc_para[SYS_INDEX_IRN][0]);
+                    Str2Double(line_str_.substr(22,16),nav_->utc_para[SYS_INDEX_IRN][1]);
+                    Str2Double(line_str_.substr(38, 7),nav_->utc_para[SYS_INDEX_IRN][2]);
+                    Str2Double(line_str_.substr(45, 5),nav_->utc_para[SYS_INDEX_IRN][3]);
                 }
             }
             else if (line_str_.find("LEAP SECONDS",60)!=string::npos) { /* opt */
-                Str2Int(line_str_.substr(0,6),nav_.leaps);
+                Str2Int(line_str_.substr(0,6),nav_->leaps);
             }
             if (line_str_.find("END OF HEADER")!=string::npos) return true;
             if (++nline>=1024 && rnx_type_.compare(" ")==0) break; /* no rinex file */
@@ -914,8 +926,6 @@ namespace PPPLib{
 
         SortBrdEph();
         SortBrdGloEph();
-        int a=nav_.brd_eph.size();
-        int b=nav_.brd_glo_eph.size();
 
         if(OpenFile()) CloseFile();
         return true;
@@ -925,7 +935,7 @@ namespace PPPLib{
 
     cReadGnssPreEph::cReadGnssPreEph(string file_path, PPPLib::tNav &nav) {
         file_=file_path;
-        nav_=nav;
+        nav_=&nav;
         sys_mask_=SYS_ALL;
     }
 
@@ -964,8 +974,8 @@ namespace PPPLib{
         while(!inf_.eof()){
             if(!line_str_.substr(0,3).compare("EOF")) break;
             if(line_str_[0]!='*'||epoch_t.Str2Time(line_str_.substr(3,28))) continue;
-            nav_.pre_eph.push_back(eph);
-            nav_.pre_eph.back().t_tag=epoch_t;
+            nav_->pre_eph.push_back(eph);
+            nav_->pre_eph.back().t_tag=epoch_t;
             for(int i=0;i<num_sat_&&getline(inf_,line_str_);i++){
                 if(line_str_.length()<4||line_str_[0]!='P') continue;
                 sat=cSat(line_str_.substr(1,3));
@@ -978,7 +988,7 @@ namespace PPPLib{
                     if(line_str_.length()>=80) Str2Double(line_str_.substr(61+j*3,j<3?2:3),std);
                     if(line_str_[0]=='P'){
                         if(val!=0.0&&fabs(val-999999.999999)>=1E-6){
-                            nav_.pre_eph.back().pos[sat.sat_.no-1][j]=val*(j<3?1000.0:1E-6);
+                            nav_->pre_eph.back().pos[sat.sat_.no-1][j]=val*(j<3?1000.0:1E-6);
                         }
                     }
                 }
@@ -1009,18 +1019,18 @@ namespace PPPLib{
 
         while(getline(inf_,line_str_)&&!inf_.eof()){
             if(line_str_.substr(0,2).compare("AS")||epoch_t.Str2Time(line_str_.substr(8,26))) continue;
-            if(nav_.pre_clk.empty()||fabs(epoch_t.TimeDiff(nav_.pre_clk.back().t_tag.t_)>1E-9)){
-                nav_.pre_clk.push_back(clk);
+            if(nav_->pre_clk.empty()||fabs(epoch_t.TimeDiff(nav_->pre_clk.back().t_tag.t_)>1E-9)){
+                nav_->pre_clk.push_back(clk);
             }
-            nav_.pre_clk.back().t_tag=epoch_t;
+            nav_->pre_clk.back().t_tag=epoch_t;
             sat=cSat(line_str_.substr(3,3));
             sat.SatId2No();
             if(!(sat.sat_.sys&sys_mask_)) continue;
             if(!(sat.sat_.no)) continue;
             if(line_str_.length()>60) k=2;
             for(int i=0,j=40;i<k;i++,j+=20) Str2Double(line_str_.substr(j,19),data[i]);
-            nav_.pre_clk.back().clk[sat.sat_.no-1]=data[0];
-            nav_.pre_clk.back().std[sat.sat_.no-1]=(float)data[1];
+            nav_->pre_clk.back().clk[sat.sat_.no-1]=data[0];
+            nav_->pre_clk.back().std[sat.sat_.no-1]=(float)data[1];
         }
     }
 
@@ -1046,7 +1056,7 @@ namespace PPPLib{
 
     cReadGnssCodeBias::cReadGnssCodeBias(string file_path, PPPLib::tNav &nav) {
         file_=file_path;
-        nav_=nav;
+        nav_=&nav;
     }
 
     cReadGnssCodeBias::~cReadGnssCodeBias() {}
@@ -1069,7 +1079,7 @@ namespace PPPLib{
                         if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_GPS][i]) break;
                     }
 
-                    nav_.code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
+                    nav_->code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
                 }
                 else if(sat.sat_.sys==SYS_BDS){
                     for(i=0;i<MAX_GNSS_CODE_BIAS_PAIRS;i++){
@@ -1078,25 +1088,25 @@ namespace PPPLib{
                             if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_BDS][i+2]) break;
                         }
                     }
-                    nav_.code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
+                    nav_->code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
                 }
                 else if(sat.sat_.sys==SYS_GAL){
                     for(i=0;i<MAX_GNSS_CODE_BIAS_PAIRS;i++){
                         if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_GAL][i]) break;
                     }
-                    nav_.code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
+                    nav_->code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
                 }
                 else if(sat.sat_.sys==SYS_GLO){
                     for(i=0;i<MAX_GNSS_CODE_BIAS_PAIRS;i++){
                         if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_GLO][i]) break;
                     }
-                    nav_.code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
+                    nav_->code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
                 }
                 else if(sat.sat_.sys==SYS_QZS){
                     for(i=0;i<MAX_GNSS_CODE_BIAS_PAIRS;i++){
                         if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_QZS][i]) break;
                     }
-                    nav_.code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
+                    nav_->code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
                 }
             }
             else continue;
@@ -1119,7 +1129,7 @@ namespace PPPLib{
 
     cReadGnssErp::cReadGnssErp(string file_path, PPPLib::tNav &nav) {
         file_=file_path;
-        nav_=nav;
+        nav_=&nav;
     }
 
     cReadGnssErp::~cReadGnssErp() {}
@@ -1139,7 +1149,7 @@ namespace PPPLib{
             erp0.lod=v[4]*1E-7;
             erp0.xpr=v[12]*1E-6*AS2R;
             erp0.ypr=v[13]*1E-6*AS2R;
-            nav_.erp_paras.push_back(erp0);
+            nav_->erp_paras.push_back(erp0);
         }
     }
 
@@ -1159,7 +1169,7 @@ namespace PPPLib{
 
     cReadGnssOcean::cReadGnssOcean(string file_path, PPPLib::tNav &nav,string site,RECEIVER_INDEX idx) {
         file_=file_path;
-        nav_=nav;
+        nav_=&nav;
         site_name_=site;
         index_=idx;
     }
@@ -1179,7 +1189,7 @@ namespace PPPLib{
                     if(line_str_.compare(0,2,"$$")==0) continue;
                     if (sscanf(line_str_.c_str(),"%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
                                v,v+1,v+2,v+3,v+4,v+5,v+6,v+7,v+8,v+9,v+10)<11) continue;
-                    for(int i=0;i<11;i++) nav_.ocean_paras[index_][n+i*6]=v[i];
+                    for(int i=0;i<11;i++) nav_->ocean_paras[index_][n+i*6]=v[i];
                     if(++n==6){return;}
                 }
             }
@@ -1202,7 +1212,7 @@ namespace PPPLib{
 
     cReadGnssAntex::cReadGnssAntex(string file_path, PPPLib::tNav &nav) {
         file_=file_path;
-        nav_=nav;
+        nav_=&nav;
     }
 
     cReadGnssAntex::~cReadGnssAntex() {}
@@ -1224,34 +1234,34 @@ namespace PPPLib{
         while(getline(inf_,line_str_)&&!inf_.eof()){
             if(line_str_.length()<60||line_str_.find("COMMENT",60)!=string::npos) continue;
             if(line_str_.find("START OF ANTENNA",60)!=string::npos){
-                nav_.ant_paras.push_back(ant0);stat=1;
+                nav_->ant_paras.push_back(ant0);stat=1;
             }
             if(line_str_.find("END OF ANTENNA",60)!=string::npos) stat=0;
             if(!stat) continue;
 
             if(line_str_.find("TYPE / SERIAL NO",60)!=string::npos){
-                nav_.ant_paras.back().ant_type=line_str_.substr(0,20);
-                nav_.ant_paras.back().ser_code=line_str_.substr(20,20);
-                nav_.ant_paras.back().ant_type=StrTrim(nav_.ant_paras.back().ant_type);
-                if(nav_.ant_paras.back().ser_code.compare(3,8,"        ")==0){
-                    nav_.ant_paras.back().sat=cSat(nav_.ant_paras.back().ser_code.substr(0,3));
-                    nav_.ant_paras.back().sat.SatId2No();
+                nav_->ant_paras.back().ant_type=line_str_.substr(0,20);
+                nav_->ant_paras.back().ser_code=line_str_.substr(20,20);
+                nav_->ant_paras.back().ant_type=StrTrim(nav_->ant_paras.back().ant_type);
+                if(nav_->ant_paras.back().ser_code.compare(3,8,"        ")==0){
+                    nav_->ant_paras.back().sat=cSat(nav_->ant_paras.back().ser_code.substr(0,3));
+                    nav_->ant_paras.back().sat.SatId2No();
                 }
-                nav_.ant_paras.back().ser_code=StrTrim(nav_.ant_paras.back().ser_code);
+                nav_->ant_paras.back().ser_code=StrTrim(nav_->ant_paras.back().ser_code);
             }
             else if(line_str_.find("VALID FROM",60)!=string::npos){
-                if(!nav_.ant_paras.back().ts.Str2Time(line_str_.substr(0,43))) continue;
+                if(!nav_->ant_paras.back().ts.Str2Time(line_str_.substr(0,43))) continue;
             }
             else if(line_str_.find("VALID UNTIL",60)!=string::npos){
-                if(!nav_.ant_paras.back().te.Str2Time(line_str_.substr(0,43))) continue;
+                if(!nav_->ant_paras.back().te.Str2Time(line_str_.substr(0,43))) continue;
             }
             else if(line_str_.find("DAZI",60)!=string::npos){
-                Str2Double(line_str_.substr(2,6),nav_.ant_paras.back().dazi); continue;
+                Str2Double(line_str_.substr(2,6),nav_->ant_paras.back().dazi); continue;
             }
             else if(line_str_.find("ZEN1 / ZEN2 / DZEN")!=string::npos) {
-                Str2Double(line_str_.substr(2,6),nav_.ant_paras.back().zen1);
-                Str2Double(line_str_.substr(8,6),nav_.ant_paras.back().zen2);
-                Str2Double(line_str_.substr(14,6),nav_.ant_paras.back().dzen);
+                Str2Double(line_str_.substr(2,6),nav_->ant_paras.back().zen1);
+                Str2Double(line_str_.substr(8,6),nav_->ant_paras.back().zen2);
+                Str2Double(line_str_.substr(14,6),nav_->ant_paras.back().dzen);
                 continue;
             }
             else if(line_str_.find("START OF FREQUENCY",60)!=string::npos){
@@ -1286,19 +1296,19 @@ namespace PPPLib{
                 double neu[3]={0};
                 if(frq<1) continue;
                 if(sscanf(line_str_.c_str(),"%lf %lf %lf",neu,neu+1,neu+2)<3) continue;
-                nav_.ant_paras.back().pco[frq-1][0]=1E-3*neu[nav_.ant_paras.back().sat.sat_.no?0:1];
-                nav_.ant_paras.back().pco[frq-1][1]=1E-3*neu[nav_.ant_paras.back().sat.sat_.no?1:0];
-                nav_.ant_paras.back().pco[frq-1][2]=1E-3*neu[2];
+                nav_->ant_paras.back().pco[frq-1][0]=1E-3*neu[nav_->ant_paras.back().sat.sat_.no?0:1];
+                nav_->ant_paras.back().pco[frq-1][1]=1E-3*neu[nav_->ant_paras.back().sat.sat_.no?1:0];
+                nav_->ant_paras.back().pco[frq-1][2]=1E-3*neu[2];
             }
             else if(line_str_.find("NOAZI")!=string::npos){
                 if(frq<1) continue;
-                double dd=(nav_.ant_paras.back().zen2-nav_.ant_paras.back().zen1)/nav_.ant_paras.back().dzen+1;
+                double dd=(nav_->ant_paras.back().zen2-nav_->ant_paras.back().zen1)/nav_->ant_paras.back().dzen+1;
                 if(dd!=round(dd)||dd<=1){
                     LOG_N_TIMES(1,WARNING)<<"Number of PCV NOAZI parameter decode error";
                     continue;
                 }
-                if(nav_.ant_paras.back().dazi==0.0){
-                    i=DecodeAntPcv(const_cast<char*>(line_str_.c_str()+8),(int)dd,nav_.ant_paras.back().pcv[frq-1]);
+                if(nav_->ant_paras.back().dazi==0.0){
+                    i=DecodeAntPcv(const_cast<char*>(line_str_.c_str()+8),(int)dd,nav_->ant_paras.back().pcv[frq-1]);
                     if(i<=0) {
                         LOG_N_TIMES(1,WARNING)<<"Number of PCV NOAZI parameter decode error";
                         continue;
@@ -1309,10 +1319,10 @@ namespace PPPLib{
                     }
                 }
                 else{
-                    int id=(int)(360-0)/nav_.ant_paras.back().dazi+1;
+                    int id=(int)(360-0)/nav_->ant_paras.back().dazi+1;
                     for(i=0;i<id;i++){
                         getline(inf_,line_str_);
-                        int j=DecodeAntPcv(const_cast<char*>(line_str_.c_str()+8),(int)dd,&nav_.ant_paras.back().pcv[frq-1][i*(int)dd]);
+                        int j=DecodeAntPcv(const_cast<char*>(line_str_.c_str()+8),(int)dd,&nav_->ant_paras.back().pcv[frq-1][i*(int)dd]);
                         if(j<=0){
                             LOG_N_TIMES(1,WARNING)<<"Number of PCV AZI parameter decode error";
                             continue;

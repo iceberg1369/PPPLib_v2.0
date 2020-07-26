@@ -83,21 +83,21 @@ int test_read_brd(){
 
 
 int test_plot_sat_view(){
-    string file="../data/jfng3350.19o";
-    tNav nav;
-    cReadGnssObs obs_reader(file,nav,REC_ROVER);
-    double es[6]={2019,12,1,0,00,00};
-    double ee[6]={2019,12,1,23,00,00};
-    cTime ts(es),te(ee);
-
-    obs_reader.SetGnssSysMask(SYS_ALL);
-    obs_reader.SetGnssTimeSpan(&ts,&te);
-
-    obs_reader.Reading();
-
-    cPlotSat plt_sat(obs_reader.GetGnssData()->GetGnssObs());
-//    plt_sat.PlotSatView();
-    plt_sat.PlotEpochSatNum();
+//    string file="../data/jfng3350.19o";
+//    tNav nav;
+//    cReadGnssObs obs_reader(file,nav,REC_ROVER);
+//    double es[6]={2019,12,1,0,00,00};
+//    double ee[6]={2019,12,1,23,00,00};
+//    cTime ts(es),te(ee);
+//
+//    obs_reader.SetGnssSysMask(SYS_ALL);
+//    obs_reader.SetGnssTimeSpan(&ts,&te);
+//
+//    obs_reader.Reading();
+//
+//    cPlotSat plt_sat(obs_reader.GetGnssData()->GetGnssObs());
+////    plt_sat.PlotSatView();
+//    plt_sat.PlotEpochSatNum();
 
 }
 

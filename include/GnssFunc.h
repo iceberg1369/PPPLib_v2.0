@@ -14,6 +14,7 @@ namespace PPPLib{
         int sys;
         int prn;
         string id;
+        int sys_idx;
     }tSat;
 
     class cSat{
@@ -164,12 +165,13 @@ namespace PPPLib{
         void SetRcvIdx(RECEIVER_INDEX rcv);
         vector<tEpochSatUnit>& GetGnssObs();
         tStaInfoUnit* GetStation();
-        int* GetEpochNum();
+
+    public:
+        int epoch_num;
 
     private:
         RECEIVER_INDEX rcv_idx_;
         cTime ts_,te_;
-        int epoch_num;
         vector<tEpochSatUnit> obs_;
         tStaInfoUnit station_;
     };
@@ -177,12 +179,20 @@ namespace PPPLib{
     typedef struct{
         cSat sat;
         cTime t_tag;
+        GNSS_SAT_STAT stat;
         int brd_eph_index;
 
-        VectorXd raw_P[MAX_GNSS_USED_FRQ_NUM];
-        VectorXd raw_L[MAX_GNSS_USED_FRQ_NUM];
-        VectorXd cor_P[MAX_GNSS_USED_FRQ_NUM];
-        VectorXd cor_L[MAX_GNSS_USED_FRQ_NUM];
+        unsigned char P_code[MAX_GNSS_USED_FRQ_NUM];
+        double raw_P[MAX_GNSS_USED_FRQ_NUM];        // L1 L2 L5
+        double raw_L[MAX_GNSS_USED_FRQ_NUM];
+        double raw_D[MAX_GNSS_USED_FRQ_NUM];
+        double raw_S[MAX_GNSS_USED_FRQ_NUM];
+        double cor_P[MAX_GNSS_USED_FRQ_NUM];        // corrected code bias BDS satellite-specific multipath
+        double cor_L[MAX_GNSS_USED_FRQ_NUM];        // corrected phase wind-up
+        double cor_if_P[MAX_GNSS_USED_FRQ_NUM];     // L1L2 L1L5 L1L2L5
+        double cor_if_L[MAX_GNSS_USED_FRQ_NUM];
+        double lam[MAX_GNSS_USED_FRQ_NUM];
+        double frq[MAX_GNSS_USED_FRQ_NUM];
 
         Vector3d brd_pos;
         Vector2d brd_clk;  // clk, clk-rate
@@ -191,41 +201,28 @@ namespace PPPLib{
 
         Vector2d trp_dry_delay; // slant_dry,map_dry
         Vector4d trp_wet_delay; // slant_wet,map_wet,grand_e,grand_n
-        Vector2d ion_delay; // L1_ion, map_ion;
+        Vector2d ion_delay; // L1_slant_ion, map_ion;
 
-        VectorXd code_bias[MAX_GNSS_USED_FRQ_NUM];
-        double   phase_wp;
-        VectorXd float_amb[MAX_GNSS_USED_FRQ_NUM]; //L1,L2,L5
+        double code_bias[MAX_GNSS_USED_FRQ_NUM];
+        double bd2_mp[3];
+        double phase_wp;
+        double float_amb[MAX_GNSS_USED_FRQ_NUM]; //L1,L2,L5
 
-        VectorXd omc_P[MAX_GNSS_USED_FRQ_NUM];
-        VectorXd omc_L[MAX_GNSS_USED_FRQ_NUM];
+        double omc_P[MAX_GNSS_USED_FRQ_NUM];
+        double omc_L[MAX_GNSS_USED_FRQ_NUM];
 
-        VectorXd prior_res_P[MAX_GNSS_USED_FRQ_NUM];
-        VectorXd prior_res_L[MAX_GNSS_USED_FRQ_NUM];
-        VectorXd post_res_P[MAX_GNSS_USED_FRQ_NUM];
-        VectorXd post_res_L[MAX_GNSS_USED_FRQ_NUM];
+        double prior_res_P[MAX_GNSS_USED_FRQ_NUM];
+        double prior_res_L[MAX_GNSS_USED_FRQ_NUM];
+        double post_res_P[MAX_GNSS_USED_FRQ_NUM];
+        double post_res_L[MAX_GNSS_USED_FRQ_NUM];
 
         Vector2d el_az;
-        Vector3d if_amb;      //L1_l2, L1_L5, L1_L2_L5
+        double if_amb[MAX_GNSS_USED_FRQ_NUM];      //L1_l2, L1_L5, L1_L2_L5
         Vector2d raw_mw_amb;  //L1_L2, L1_L5
         Vector2d sm_mw_amb;   //L1_L2, L1_L5
         Vector2d gf;          //L1_L2, L1_L5
         Vector2d multipath_comb;
     }tSatInfoUnit;
-
-    typedef struct {
-        cTime t_tag;
-        Vector3d pos;
-        Vector3d vel;
-        double clk_error[NSYS];
-        double rec_dcb[NSYS];
-        double rec_ifb[NSYS];
-        Vector2d zenith_trp_delay; // dry and wet
-
-        Vector3d att;  //roll pitch yaw
-        Vector3d gyro_bias;
-        Vector3d accl_bias;
-    }tSolInfoUnit;
 
 }
 

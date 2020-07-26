@@ -6,3 +6,6 @@ add_subdirectory(app)
 
 add_executable(test_main test.cc)
 target_link_libraries(test_main PPPLib)
+
+add_executable(PPPLibMain PPPLibMain.cc)
+target_link_libraries(PPPLibMain PPPLib)

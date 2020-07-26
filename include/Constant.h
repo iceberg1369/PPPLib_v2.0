@@ -229,13 +229,89 @@ namespace PPPLib {
     const int GNSS_CODE_L8Z=57;
     const int MAX_GNSS_CODE_TYPE=57;
 
+    const int GPS_C1CC2W=0;
+    const int GPS_C1CC5Q=1;
+    const int GPS_C1CC5X=2;
+    const int GPS_C1WC2W=3;
+    const int GPS_C1CC1W=4;
+    const int GPS_C2CC2W=5;
+    const int GPS_C2WC2S=6;
+    const int GPS_C2WC2L=7;
+    const int GPS_C2WC2X=8;
+
+    const int BD2_C2IC7I=0;
+    const int BD2_C2IC6I=1;
+
+    const int BD3_C1XC5X=2;
+    const int BD3_C1PC5P=3;
+    const int BD3_C1DC5D=4;
+    const int BD3_C1XC6I=5;
+    const int BD3_C1PC6I=6;
+    const int BD3_C1DC6I=7;
+    const int BD3_C2IC6I=8;
+    const int BD3_C1XC7Z=9;
+    const int BD3_C1XC8X=10;
+
+    const int GAL_C1CC5Q=0;
+    const int GAL_C1CC6C=1;
+    const int GAL_C1CC7Q=2;
+    const int GAL_C1CC8Q=3;
+    const int GAL_C1XC5X=4;
+    const int GAL_C1XC7X=5;
+    const int GAL_C1XC8X=6;
+
+    const int GLO_C1CC2C=0;
+    const int GLO_C1CC2P=1;
+    const int GLO_C1PC2P=2;
+    const int GLO_C1CC1P=3;
+    const int GLO_C2CC2P=4;
+
+    const int QZS_C1CC2L=0;
+    const int QZS_C1CC5X=1;
+    const int QZS_C1CC5Q=2;
+    const int QZS_C1XC2X=3;
+    const int QZS_C1XC5X=4;
+    const int QZS_C1CC1X=5;
+
     const double kGnssFreqs[NSYS][MAX_GNSS_FRQ_NUM]{
             {FREQ_GPS_L1,FREQ_GPS_L2, FREQ_GPS_L5,  FREQ_NONE,    FREQ_NONE,    FREQ_NONE},
-            {FREQ_BDS_B1,FREQ_BDS_B3, FREQ_BDS_B2,  FREQ_BDS_B1C, FREQ_BDS_B2A, FREQ_BDS_B2B},
+            {FREQ_BDS_B1,FREQ_BDS_B2, FREQ_BDS_B3,  FREQ_BDS_B1C, FREQ_BDS_B2A, FREQ_BDS_B2B},
             {FREQ_GAL_E1,FREQ_GAL_E5A,FREQ_GAL_E5B, FREQ_NONE,    FREQ_NONE,    FREQ_NONE},
             {FREQ_GLO_G1,FREQ_GLO_G2, FREQ_NONE,    FREQ_NONE,    FREQ_NONE,    FREQ_NONE},
             {FREQ_QZS_L1,FREQ_QZS_L2, FREQ_QZS_L5,  FREQ_NONE,    FREQ_NONE,    FREQ_NONE},
             {FREQ_NONE,  FREQ_NONE,   FREQ_NONE,    FREQ_NONE,    FREQ_NONE,    FREQ_NONE}
+    };
+
+    enum GPS_FRQ {
+        GPS_L1,
+        GPS_L2,
+        GPS_L5
+    };
+
+    enum BDS_FRQ {
+        BDS_B1I,
+        BDS_B2I,
+        BDS_B3I,
+        BDS_B1C,
+        BDS_B2a,
+        BDS_B2b
+    };
+
+    enum GAL_FRQ {
+        GAL_E1,
+        GAL_E5a,
+        GAL_E5b,
+    };
+
+    enum GLO_FRQ {
+        GLO_G1,
+        GLO_G2
+    };
+
+    enum QZS_FRQ {
+        QZS_L1,
+        QZS_L2,
+        QZS_L5
     };
 
     const string kGnssSignalCodes[]={
@@ -262,8 +338,8 @@ namespace PPPLib {
             0, 0, 0, 0, 4, 4, 0, 0, 0, 4,
             0, 0, 4, 0, 0, 0, 0, 1, 0, 0,
             0, 0, 1, 1, 0, 0, 0, 0, 0, 0,
-            0, 0, 5, 5, 5, 0, 2, 0, 2, 0,
-            0, 0, 0, 0, 2, 2, 3, 3, 3, 6,
+            0, 0, 5, 5, 5, 0, 3, 0, 3, 0,
+            0, 0, 0, 0, 3, 3, 2, 2, 2, 6,
             6, 6, 0, 0, 0, 0, 0, 0, 0, 0,
     };
     //GAL E1(1) E5a(5) E5b(7) E5ab(8) E6(6)
@@ -314,11 +390,57 @@ namespace PPPLib {
             {"C1C-C2L", "C1C-C5X", "C1C-C5Q", "C1X-C2X", "C1X-C5X", "C1C-C1X", "", "", "", "", "", ""},
     };
 
+    const int NUM_BD2_GEO=5;
+    const int NUM_BD2_IGSO=7;
+    const int NUM_BD2_MEO=3;
+    const int kBD2_GEO[]={1,2,3,4,5};
+    const int kBD2_IGSO[]={6,7,8,9,10,13,16};
+    const int kBD2_MEO[]={11,12,14};
+
     enum GNSS_OBS {
         GNSS_OBS_CODE,
         GNSS_OBS_PHASE,
         GNSS_OBS_DOPPLER,
         GNSS_OBS_SNR
+    };
+
+    enum GNSS_TRP_OPT {
+        TRP_OFF,
+        TRP_SAAS,
+        TRP_EST_WET,
+        TRP_EST_GRAD
+    };
+
+    enum GNSS_EPH_OPT {
+        EPH_BRD,
+        EPH_PRE
+    };
+
+    enum GNSS_AC_OPT {
+        AC_WUM,
+        AC_GBM,
+        AC_COM,
+    };
+
+    enum GNSS_ION_OPT {
+        ION_OFF,
+        ION_KLB,
+        ION_TEC,
+        ION_IF,
+        ION_EST,
+        ION_CONST
+    };
+
+    enum GNSS_FRQ_OPT {
+        FRQ_SINGLE,
+        FRQ_DUAL,
+        FRQ_TRIPLE
+    };
+
+    enum GNSS_SAT_STAT {
+        SAT_NO_USE=-1,
+        SAT_USED=0,
+        SAT_SLIP,
     };
 
     // ins related constant definitions
@@ -331,6 +453,31 @@ namespace PPPLib {
     enum IMU_COORD_TYPE {
         IMU_COORD_ENU,
         IMU_COORD_NED,
+    };
+
+    enum SOLVE_ESTIMATOR {
+        SOLVE_LSQ,
+        SOLVE_KF,
+    };
+
+    enum PPPLIB_MODE {
+        MODE_SPP,
+        MODE_PPP,
+        MODE_DGNSS,
+        MODE_PPK
+    };
+
+    enum SOL_STAT {
+        SOL_NONE=0,
+        SOL_SPP,
+        SOL_PPP,
+        SOL_PPP_AR,
+        SOL_DGNSS,
+        SOL_PPK,
+        SOL_PPK_AR,
+        SOL_INS_MECH,
+        SOL_IG_LC,
+        SOL_IG_TC
     };
 
 }

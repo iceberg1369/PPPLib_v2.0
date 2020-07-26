@@ -73,7 +73,7 @@ namespace PPPLib {
         virtual ~cReadRnx();
 
     public:
-        void SetGnssSysMask(int mask);
+        virtual void SetGnssSysMask(int mask);
         bool ReadRnxHead();
 
     public:
@@ -113,7 +113,7 @@ namespace PPPLib {
     class cReadGnssObs:public cReadRnx {
         public:
             cReadGnssObs();
-            cReadGnssObs(string file_path,tNav& nav,RECEIVER_INDEX rcv);
+            cReadGnssObs(string file_path,tNav& nav,cGnssObs& obss,RECEIVER_INDEX rcv);
             ~cReadGnssObs();
 
         private:
@@ -131,9 +131,8 @@ namespace PPPLib {
             bool Reading() override;
 
         private:
-            int sys_mask_;
-            cGnssObs gnss_data_;
-            tNav nav_;
+            cGnssObs* gnss_data_;
+            tNav* nav_;
             string obs_type_code_[NSYS][MAX_GNSS_OBS_TYPE];
             cGnssSignal signal_index[NSYS];
     };
@@ -161,7 +160,7 @@ namespace PPPLib {
 
     private:
         double eph_data_[64]={0};
-        tNav nav_;
+        tNav* nav_;
     };
 
     class cReadGnssPreEph:public cReadFile {
@@ -185,7 +184,7 @@ namespace PPPLib {
         cTime pre_eph_time_;
         int num_sat_;
         int sys_mask_;
-        tNav nav_;
+        tNav* nav_;
     };
 
     class cReadGnssCodeBias:public cReadFile {
@@ -201,7 +200,7 @@ namespace PPPLib {
         bool Reading() override;
 
     private:
-        tNav nav_;
+        tNav* nav_;
     };
 
     class cReadGnssErp:public cReadFile {
@@ -217,7 +216,7 @@ namespace PPPLib {
         bool Reading() override;
 
     private:
-        tNav nav_;
+        tNav* nav_;
     };
 
     class cReadGnssOcean:public cReadFile {
@@ -235,7 +234,7 @@ namespace PPPLib {
     private:
         RECEIVER_INDEX index_;
         string site_name_;
-        tNav nav_;
+        tNav* nav_;
     };
 
     class cReadGnssAntex:public cReadFile {
@@ -252,7 +251,7 @@ namespace PPPLib {
         bool Reading() override;
 
     private:
-        tNav nav_;
+        tNav* nav_;
     };
 
     class cReadGnssIonex:public cReadFile {

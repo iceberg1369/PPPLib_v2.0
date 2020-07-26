@@ -6,6 +6,7 @@
 #define PPPLIB_CMNFUNC_H
 
 #include <Eigen/Dense>
+#include <iomanip>
 #include "LogInfo.h"
 #include "Constant.h"
 
@@ -113,6 +114,94 @@ namespace PPPLib{
         Vector3d coord_BLH_;
         Vector3d coord_NED_;
         Matrix3d Cne_;
+    };
+
+    typedef struct{
+        GNSS_FRQ_OPT frq_opt;
+        int gnss_frq[NSYS+1][MAX_GNSS_USED_FRQ_NUM];
+        GNSS_AC_OPT  ac_opt;
+        GNSS_EPH_OPT eph_opt;
+        GNSS_ION_OPT ion_opt;
+        GNSS_TRP_OPT trp_opt;
+    }tGnssConf;
+
+    typedef struct{
+
+    }tInsConf;
+
+    typedef struct{
+        string rover;
+        string base;
+        string brd;
+        string cbias;
+        string clk;
+        string sp3[3];
+        string erp;
+        string atx;
+        string gim;
+        string blq;
+        string ref;
+        string sol;
+    }tFileConf;
+
+    typedef struct{
+        PPPLIB_MODE mode;
+        int dynamic;
+        SOLVE_ESTIMATOR estimator;
+        tGnssConf gnssC;
+        tInsConf  insC;
+        tFileConf fileC;
+    }tPPPLibConf;
+
+    typedef struct {
+        cTime t_tag;
+        SOL_STAT stat;
+        Vector3d pos;
+        Vector3d vel;
+        double clk_error[NSYS];
+        double rec_dcb[NSYS];
+        double rec_ifb[NSYS];
+        Vector2d zenith_trp_delay; // dry and wet
+
+        Vector3d att;  //roll pitch yaw
+        Vector3d gyro_bias;
+        Vector3d accl_bias;
+    }tSolInfoUnit;
+
+    class cParSetting{
+    public:
+        cParSetting();
+        cParSetting(tPPPLibConf conf);
+        ~cParSetting();
+
+    public:
+        int GetGnssUsedFrqs();
+        int GetSppParNum();
+        int GetPppParNum();
+        int GetDgnssParNum();
+        int GetPpkParNum();
+
+    private:
+        int PvaParNum();
+        int RecClkParNum();
+        int RecDcbParNum();
+        int RecIfbParNum();
+        int GloIfcbParNum();
+        int TrpParNum();
+        int IonParNum();
+        int AmbParNum();
+
+        int ParIndexPva(int i);
+        int ParIndexClk(int sys_index);
+        int ParIndexDcb(int sys_index);
+        int ParIndexIfb(int sys_index);
+        int ParIndexGloIfcb();
+        int ParIndexTrp();
+        int ParIndexIon(int sat_no);
+        int ParIndexAmb(int f,int sat_no);
+
+    private:
+        tPPPLibConf PPPLibC_;
     };
 }
 

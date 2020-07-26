@@ -24,19 +24,19 @@ namespace PPPLib{
         switch(sat_.sys){
             case SYS_GPS:
                 if(sat_.prn<GPS_MIN_PRN||GPS_MAX_PRN<sat_.prn){sat_.no=0;return;}
-                sat_.no=sat_.prn-GPS_MIN_PRN+1;break;
+                sat_.no=sat_.prn-GPS_MIN_PRN+1;sat_.sys_idx=SYS_INDEX_GPS;break;
             case SYS_BDS:
                 if(sat_.prn<BDS_MIN_PRN||BDS_MAX_PRN<sat_.prn){sat_.no=0;return;}
-                sat_.no=NUM_GPS_SAT+sat_.prn-BDS_MIN_PRN+1;break;
+                sat_.no=NUM_GPS_SAT+sat_.prn-BDS_MIN_PRN+1;sat_.sys_idx=SYS_INDEX_BDS;break;
             case SYS_GAL:
                 if(sat_.prn<GAL_MIN_PRN||GAL_MAX_PRN<sat_.prn){sat_.no=0;return;}
-                sat_.no=NUM_GPS_SAT+NUM_BDS_SAT+sat_.prn-GAL_MIN_PRN+1;break;
+                sat_.no=NUM_GPS_SAT+NUM_BDS_SAT+sat_.prn-GAL_MIN_PRN+1;sat_.sys_idx=SYS_INDEX_GAL;break;
             case SYS_GLO:
                 if(sat_.prn<GLO_MIN_PRN||GLO_MAX_PRN<sat_.prn){sat_.no=0;return;}
-                sat_.no=NUM_GPS_SAT+NUM_BDS_SAT+NUM_GAL_SAT+sat_.prn-GLO_MIN_PRN+1;break;
+                sat_.no=NUM_GPS_SAT+NUM_BDS_SAT+NUM_GAL_SAT+sat_.prn-GLO_MIN_PRN+1;sat_.sys_idx=SYS_INDEX_GLO;break;
             case SYS_QZS:
                 if(sat_.prn<QZS_MIN_PRN||QZS_MAX_PRN<sat_.prn){sat_.no=0;return;}
-                sat_.no=NUM_GPS_SAT+NUM_BDS_SAT+NUM_GAL_SAT+NUM_GLO_SAT+sat_.prn-QZS_MIN_PRN+1;break;
+                sat_.no=NUM_GPS_SAT+NUM_BDS_SAT+NUM_GAL_SAT+NUM_GLO_SAT+sat_.prn-QZS_MIN_PRN+1;sat_.sys_idx=SYS_INDEX_QZS;break;
             case SYS_IRN:
                 sat_.no=0;break;
             default:
@@ -52,19 +52,19 @@ namespace PPPLib{
             return;
         }
         else if(prn<=NUM_GPS_SAT){
-            sat_.sys=SYS_GPS;prn+=GPS_MIN_PRN-1;
+            sat_.sys=SYS_GPS;prn+=GPS_MIN_PRN-1;sat_.sys_idx=SYS_INDEX_GPS;
         }
         else if((prn-=NUM_GPS_SAT)<=NUM_BDS_SAT){
-            sat_.sys=SYS_BDS;prn+=BDS_MIN_PRN-1;
+            sat_.sys=SYS_BDS;prn+=BDS_MIN_PRN-1;sat_.sys_idx=SYS_INDEX_BDS;
         }
         else if((prn-=NUM_BDS_SAT)<=NUM_GAL_SAT){
-            sat_.sys=SYS_GAL;prn+=GAL_MIN_PRN-1;
+            sat_.sys=SYS_GAL;prn+=GAL_MIN_PRN-1;sat_.sys_idx=SYS_INDEX_GAL;
         }
         else if((prn-=NUM_GAL_SAT)<=NUM_GLO_SAT){
-            sat_.sys=SYS_GLO;prn+=GLO_MIN_PRN-1;
+            sat_.sys=SYS_GLO;prn+=GLO_MIN_PRN-1;sat_.sys_idx=SYS_INDEX_GLO;
         }
         else if((prn-=NUM_GLO_SAT)<=NUM_QZS_SAT){
-            sat_.sys=SYS_QZS;prn+=QZS_MIN_PRN-1;
+            sat_.sys=SYS_QZS;prn+=QZS_MIN_PRN-1;sat_.sys_idx=SYS_INDEX_QZS;
         }
         else if((prn-=NUM_QZS_SAT)<=NUM_IRN_SAT){
             sat_.sys=SYS_IRN;prn=0;
@@ -77,11 +77,11 @@ namespace PPPLib{
         SatNo2Prn();
         string buff;
         switch (sat_.sys){
-            case SYS_GPS: sat_.id="G"+Int2Str(2,"0",sat_.prn-GPS_MIN_PRN+1,buff); break;
-            case SYS_BDS: sat_.id="C"+Int2Str(2,"0",sat_.prn-BDS_MIN_PRN+1,buff); break;
-            case SYS_GAL: sat_.id="E"+Int2Str(2,"0",sat_.prn-GAL_MIN_PRN+1,buff); break;
-            case SYS_GLO: sat_.id="R"+Int2Str(2,"0",sat_.prn-GLO_MIN_PRN+1,buff); break;
-            case SYS_QZS: sat_.id="J"+Int2Str(2,"0",sat_.prn-QZS_MIN_PRN+1,buff); break;
+            case SYS_GPS: sat_.id="G"+Int2Str(2,"0",sat_.prn-GPS_MIN_PRN+1,buff);sat_.sys_idx=SYS_INDEX_GPS; break;
+            case SYS_BDS: sat_.id="C"+Int2Str(2,"0",sat_.prn-BDS_MIN_PRN+1,buff);sat_.sys_idx=SYS_INDEX_BDS; break;
+            case SYS_GAL: sat_.id="E"+Int2Str(2,"0",sat_.prn-GAL_MIN_PRN+1,buff);sat_.sys_idx=SYS_INDEX_GAL; break;
+            case SYS_GLO: sat_.id="R"+Int2Str(2,"0",sat_.prn-GLO_MIN_PRN+1,buff);sat_.sys_idx=SYS_INDEX_GLO; break;
+            case SYS_QZS: sat_.id="J"+Int2Str(2,"0",sat_.prn-QZS_MIN_PRN+1,buff);sat_.sys_idx=SYS_INDEX_QZS; break;
             default:
                 sat_.id="";break;
         }
@@ -94,11 +94,11 @@ namespace PPPLib{
         char code= sat_.id[0];
 
         switch(code){
-            case 'G': sat_.sys=SYS_GPS;sat_.prn+=GPS_MIN_PRN-1;break;
-            case 'C': sat_.sys=SYS_BDS;sat_.prn+=BDS_MIN_PRN-1;break;
-            case 'E': sat_.sys=SYS_GAL;sat_.prn+=GAL_MIN_PRN-1;break;
-            case 'R': sat_.sys=SYS_GLO;sat_.prn+=GLO_MIN_PRN-1;break;
-            case 'J': sat_.sys=SYS_QZS;sat_.prn+=QZS_MIN_PRN-1;break;
+            case 'G': sat_.sys=SYS_GPS;sat_.prn+=GPS_MIN_PRN-1;sat_.sys_idx=SYS_INDEX_GPS;break;
+            case 'C': sat_.sys=SYS_BDS;sat_.prn+=BDS_MIN_PRN-1;sat_.sys_idx=SYS_INDEX_BDS;break;
+            case 'E': sat_.sys=SYS_GAL;sat_.prn+=GAL_MIN_PRN-1;sat_.sys_idx=SYS_INDEX_GAL;break;
+            case 'R': sat_.sys=SYS_GLO;sat_.prn+=GLO_MIN_PRN-1;sat_.sys_idx=SYS_INDEX_GLO;break;
+            case 'J': sat_.sys=SYS_QZS;sat_.prn+=QZS_MIN_PRN-1;sat_.sys_idx=SYS_INDEX_QZS;break;
             default:
                 sat_.sys=SYS_NONE;sat_.prn=0;break;
         }
@@ -123,7 +123,5 @@ namespace PPPLib{
     vector<tEpochSatUnit>& cGnssObs::GetGnssObs() {return obs_;}
 
     tStaInfoUnit* cGnssObs::GetStation() {return &station_;}
-
-    int* cGnssObs::GetEpochNum() {return &epoch_num;}
 
 }

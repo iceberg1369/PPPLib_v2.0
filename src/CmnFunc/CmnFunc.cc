@@ -527,13 +527,112 @@ namespace PPPLib{
         while(true){
             temp_lat1=temp_lat2;
             N=WGS84_EARTH_LONG_RADIUS/sqrt(1.0-WGS84_FIRST_E2*sin(temp_lat1)*sin(temp_lat1));
-            temp_lat2=atan(coord_XYZ_[2]+N*WGS84_FIRST_E2*sin(temp_lat1))/sqrt(coord_XYZ_[0]*coord_XYZ_[0]+coord_XYZ_[1]*coord_XYZ_[1]);
+            temp_lat2=atan((coord_XYZ_[2]+N*WGS84_FIRST_E2*sin(temp_lat1))/sqrt(coord_XYZ_[0]*coord_XYZ_[0]+coord_XYZ_[1]*coord_XYZ_[1]));
             if(fabs(temp_lat2-temp_lat1)<LAT_ACCURACY){
                 return temp_lat2;
             }
         }
     }
 
+    cParSetting::cParSetting(){}
+
+    cParSetting::cParSetting(tPPPLibConf conf) {PPPLibC_=conf;}
+
+    cParSetting::~cParSetting() {}
+
+    int cParSetting::GetGnssUsedFrqs() {
+        if(PPPLibC_.gnssC.ion_opt==ION_IF) return 1;
+        else return PPPLibC_.gnssC.frq_opt+1;
+    }
+
+    int cParSetting::GetSppParNum() {
+        return PvaParNum()+RecClkParNum();
+    }
+
+    int cParSetting::GetPppParNum() {
+        return GetSppParNum()+RecDcbParNum()+RecIfbParNum()+GloIfcbParNum()+TrpParNum()+IonParNum()+AmbParNum();
+    }
+
+    int cParSetting::GetDgnssParNum() {
+        return PvaParNum();
+    }
+
+    int cParSetting::GetPpkParNum() {
+        return PvaParNum()+TrpParNum()+IonParNum()+AmbParNum();
+    }
+
+    int cParSetting::PvaParNum() {
+        if(PPPLibC_.dynamic) return 3+3+3;
+        return 3;
+    }
+
+    int cParSetting::RecClkParNum() {
+        return NSYS;
+    }
+
+    int cParSetting::RecDcbParNum() {
+        if(PPPLibC_.gnssC.ion_opt==ION_CONST) return NSYS;
+        return 0;
+    }
+
+    int cParSetting::RecIfbParNum() {
+        if(PPPLibC_.gnssC.frq_opt>=3) return NSYS;
+        return 0;
+    }
+
+    int cParSetting::GloIfcbParNum() {
+
+    }
+
+    int cParSetting::TrpParNum() {
+        if(PPPLibC_.gnssC.trp_opt<=TRP_SAAS) return 0;
+        else if(PPPLibC_.gnssC.trp_opt==TRP_EST_WET) return 1;
+        else if(PPPLibC_.gnssC.trp_opt==TRP_EST_GRAD) return 1+2;
+    }
+
+    int cParSetting::IonParNum() {
+        if(PPPLibC_.gnssC.ion_opt<=ION_IF) return 0;
+        else if(PPPLibC_.gnssC.ion_opt<=ION_CONST) return MAX_SAT_NUM;
+    }
+
+    int cParSetting::AmbParNum() {
+        return MAX_SAT_NUM*GetGnssUsedFrqs();
+    }
+
+    int cParSetting::ParIndexPva(int i) {
+        if(i<3) return 0;
+        else if(i<6) return 3;
+        else if(i<9) return 6;
+    }
+
+    int cParSetting::ParIndexClk(int sys_index) {
+        return PvaParNum()+sys_index;
+    }
+
+    int cParSetting::ParIndexDcb(int sys_index) {
+        return PvaParNum()+RecClkParNum()+sys_index;
+    }
+
+    int cParSetting::ParIndexIfb(int sys_index) {
+        return PvaParNum()+RecClkParNum()+RecDcbParNum()+sys_index;
+    }
+
+    int cParSetting::ParIndexGloIfcb() {
+
+    }
+
+    int cParSetting::ParIndexTrp() {
+        return PvaParNum()+RecClkParNum()+RecDcbParNum()+RecIfbParNum()+GloIfcbParNum();
+    }
+
+    int cParSetting::ParIndexIon(int sat_no) {
+        return PvaParNum()+RecClkParNum()+RecDcbParNum()+RecIfbParNum()+GloIfcbParNum()+TrpParNum()+sat_no-1;
+    }
+
+    int cParSetting::ParIndexAmb(int f, int sat_no) {
+        return PvaParNum()+RecClkParNum()+RecDcbParNum()+RecIfbParNum()+GloIfcbParNum()+TrpParNum()+IonParNum()
+               +f*MAX_SAT_NUM+sat_no-1;
+    }
 }
 
 
