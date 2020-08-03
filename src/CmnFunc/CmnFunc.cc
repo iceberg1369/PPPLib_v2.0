@@ -6,6 +6,13 @@
 
 namespace PPPLib{
 
+    int Round(double d){
+        int i;
+        if(d>=0) i=(int)(d+0.5);
+        else i=(int)(d-0.5);
+        return i;
+    }
+
     string Doul2Str(int str_len, int dec_len, const string str_filler, const double src_num, string &dst_str){
         dst_str=to_string(src_num); /* with 6 decimal digit */
         if(dec_len>0)dst_str=dst_str.substr(0,dst_str.length()-6+dec_len); /* decimal digits */
@@ -83,15 +90,16 @@ namespace PPPLib{
         t_=t;
     }
 
-    cTime cTime::operator+(double sec) const{
+    cTime cTime::operator+(double sec){
+#if 1
         double tt;
-        cTime t;
-        t=*this;
-        t.t_.sec+=sec;
-        tt=floor(t.t_.sec);
-        t.t_.long_time+=(int)tt;
-        t.t_.sec-=tt;
-        return t;
+        this->t_.sec+=sec;
+        tt=floor(this->t_.sec);
+        this->t_.long_time+=(int)tt;
+        this->t_.sec-=tt;
+        return *this;
+#endif
+
     }
 
     void cTime::operator+=(double sec) {
@@ -193,8 +201,8 @@ namespace PPPLib{
 
     void cTime::Time2Mjd() {
         this->Time2Epoch();
-        int year=(int)round(epoch_[0]);
-        int mon=(int)round(epoch_[1]);
+        int year=(int)Round(epoch_[0]);
+        int mon=(int)Round(epoch_[1]);
         if(mon<=2){
             year=year-1;
             mon=mon+12;
@@ -202,9 +210,9 @@ namespace PPPLib{
 
         int a=(int)(365.25*year);
         int b=(int)(30.6001)*(mon+1);
-        mjd_.day=a+b+round(epoch_[2])-679019;
-        mjd_.sod.sn=round(epoch_[3])*3600+round(epoch_[4])*60+round(epoch_[5]);
-        mjd_.sod.tos=epoch_[5]-round(epoch_[5]);
+        mjd_.day=a+b+Round(epoch_[2])-679019;
+        mjd_.sod.sn=Round(epoch_[3])*3600+Round(epoch_[4])*60+Round(epoch_[5]);
+        mjd_.sod.tos=epoch_[5]-Round(epoch_[5]);
     }
 
     double cTime::Time2Doy() {
@@ -272,7 +280,7 @@ namespace PPPLib{
 
         for(i=0;kUtcLeapSec[i][0]>0;i++){
             if((t.TimeDiff(t0.Epoch2Time(kUtcLeapSec[i])->t_))>=0.0){
-                tg=t+(-kUtcLeapSec[i][6]);
+                tg=(t+(-kUtcLeapSec[i][6]));
                 return tg;
             }
         }
@@ -293,11 +301,11 @@ namespace PPPLib{
         }
     }
 
-    cTime cTime::Gpst2Bdst() const{
+    cTime cTime::Gpst2Bdst(){
         return *this+(-14.0);
     }
 
-    cTime cTime::Bdst2Gpst() const {
+    cTime cTime::Bdst2Gpst(){
         return *this+14.0;
     }
 
@@ -328,7 +336,7 @@ namespace PPPLib{
 //        if(dt<-43200.0) return *this+  86400.0;
 //        if(dt> 43200.0) return *this+(-86400.0);
     }
-
+#if 0
     cCoord::cCoord() {
         coord_ENU_={0.0,0.0,0.0};
         coord_BLH_={0.0,0.0,0.0};
@@ -515,8 +523,18 @@ namespace PPPLib{
             Cne_(2,1)=0.0;
             Cne_(2,2)=-sin_lat;
         }
-        else {
+        else if(type==COORD_ENU){
+            Cne_(0,0)=-sin_lon;
+            Cne_(0,1)=cos_lon;
+            Cne_(0,2)=0.0;
 
+            Cne_(1,0)=-sin_lat*cos_lon;
+            Cne_(1,1)=-sin_lat*sin_lon;
+            Cne_(1,2)=cos_lat;
+
+            Cne_(2,0)=cos_lat*cos_lon;
+            Cne_(2,1)=cos_lat*sin_lon;
+            Cne_(2,2)=sin_lat;
         }
     }
 
@@ -532,6 +550,197 @@ namespace PPPLib{
                 return temp_lat2;
             }
         }
+    }
+
+    static double CalcLat(Vector3d coord_xyz) {
+        double temp_lat1=0.0,temp_lat2=0.0;
+        double N=0.0;
+        temp_lat2=atan(coord_xyz[2]/sqrt(coord_xyz[0]*coord_xyz[0]+coord_xyz[1]*coord_xyz[1]));
+        while(true){
+            temp_lat1=temp_lat2;
+            N=WGS84_EARTH_LONG_RADIUS/sqrt(1.0-WGS84_FIRST_E2*sin(temp_lat1)*sin(temp_lat1));
+            temp_lat2=atan((coord_xyz[2]+N*WGS84_FIRST_E2*sin(temp_lat1))/sqrt(coord_xyz[0]*coord_xyz[0]+coord_xyz[1]*coord_xyz[1]));
+            if(fabs(temp_lat2-temp_lat1)<LAT_ACCURACY){
+                return temp_lat2;
+            }
+        }
+    }
+#endif
+
+    Vector3d Xyz2Blh(Vector3d& coord_xyz){
+#if 0
+        double lon,lat,hgt;
+        if(coord_xyz[0]>LAT_ACCURACY){
+            lon=atan(coord_xyz[1]/coord_xyz[0]);
+        }
+        else if(coord_xyz[0]<LAT_ACCURACY){
+            lon=atan(coord_xyz[1]/coord_xyz[0])+PI;
+        }
+        else{
+            if(coord_xyz[1]>0)
+                lon=PI*0.5;
+            else
+                lon=PI*1.5;
+        }
+        lat=CalcLat(coord_xyz);
+        double N=WGS84_EARTH_LONG_RADIUS/sqrt(1.0-WGS84_FIRST_E2*sin(lat)*sin(lat));
+        hgt=sqrt(coord_xyz[0]*coord_xyz[0]+coord_xyz[1]*coord_xyz[1])*cos(lat)+coord_xyz[2]*sin(lat)
+            -N*(1.0-WGS84_FIRST_E2*pow(sin(lat),2));
+
+        return Vector3d(lat,lon,hgt);
+#endif
+        double re=WGS84_EARTH_LONG_RADIUS,fe=WGS84_EARTH_OBLATEO;
+        Vector3d blh;
+        double r2=SQR(coord_xyz[0])+SQR(coord_xyz[1]),e2=fe*(2.0-fe),z,zk,v=re,sinp;
+
+        for(z=coord_xyz[2],zk=0.0;fabs(z-zk)>=1E-4;){
+            zk=z;
+            sinp=z/sqrt(r2+z*z);
+            v=re/sqrt(1.0-e2*sinp*sinp);
+            z=coord_xyz[2]+v*e2*sinp;
+        }
+        blh[0]=r2>1E-12?atan(z/sqrt(r2)):(coord_xyz[2]>0.0?PI/2.0:-PI/2.0);
+        blh[1]=r2>1E-12?atan2(coord_xyz[1],coord_xyz[0]):0.0;
+        blh[2]=sqrt(r2+z*z)-v;
+        return blh;
+    }
+
+    Vector3d Blh2Xyz(Vector3d& coord_blh){
+        const double sin_lat=sin(coord_blh[0]);
+        const double cos_lat=cos(coord_blh[0]);
+        const double sin_lon=sin(coord_blh[1]);
+        const double cos_lon=cos(coord_blh[1]);
+        double N=WGS84_EARTH_LONG_RADIUS/sqrt(1.0-WGS84_FIRST_E2*sin_lat*sin_lat);
+
+        double x=(N+coord_blh[2])*cos_lat*cos_lon;
+        double y=(N+coord_blh[2])*cos_lat*sin_lon;
+        double z=(N*(1.0-WGS84_FIRST_E2)+coord_blh[2])*sin_lat;
+
+        return Vector3d(x,y,z);
+    }
+
+    Vector3d Xyz2Enu(Vector3d& coord_blh,Vector3d& coord_xyz){
+#if 0
+        Vector3d temp_xyz;
+        temp_xyz[0]=coord_xyz[0]-ref_xyz[0];
+        temp_xyz[1]=coord_xyz[1]-ref_xyz[1];
+        temp_xyz[2]=coord_xyz[2]-ref_xyz[2];
+
+        Vector3d ref_blh=Xyz2Blh(ref_xyz);
+
+        double lat=ref_blh[0];
+        double lon=ref_blh[1];
+
+        Vector3d enu(0,0,0);
+
+        enu[0]=-sin(lon)*temp_xyz[0]+cos(lon)*temp_xyz[1];
+        enu[1]=-sin(lat)*cos(lon)*temp_xyz[0]-sin(lat)*sin(lon)*temp_xyz[1]+cos(lat)*temp_xyz[2];
+        enu[2]=cos(lat)*cos(lon)*temp_xyz[0]+cos(lat)*sin(lon)*temp_xyz[1]+sin(lat)*temp_xyz[2];
+
+        return enu;
+#endif
+        Matrix3d Cen;
+        Cen=CalcCen(coord_blh,COORD_ENU);
+        return Cen*coord_xyz;
+    }
+
+    // coord in enu frame to ECEF frame coord
+    Vector3d Enu2Xyz(Vector3d& coord_blh,Vector3d& coord_enu){
+#if 0
+        Vector3d ref_blh=Xyz2Blh(ref_xyz);
+        double lat=ref_blh[0],lon=ref_blh[1];
+        double sin_lat=sin(lat);
+        double cos_lat=cos(lat);
+        double sin_lon=sin(lon);
+        double cos_lon=cos(lon);
+
+        double temp1=sin_lat*cos_lon*coord_enu[1];
+        double temp2=sin_lon*coord_enu[0];
+        double temp3=cos_lat*cos_lon*coord_enu[2];
+
+        Vector3d coord_xyz;
+        coord_xyz[0]=ref_xyz[0]-temp1-temp2+temp3;
+
+        temp1=sin_lat*sin_lon*coord_enu[1];
+        temp2=cos_lon*coord_enu[0];
+        temp3=cos_lat*sin_lon*coord_enu[2];
+        coord_xyz[1]=ref_xyz[1]-temp1+temp2+temp3;
+
+        temp1=cos_lat*coord_enu[1];
+        temp2=sin_lat*coord_enu[2];
+        coord_xyz[2]=ref_xyz[2]+temp1+temp2;
+
+        return coord_xyz;
+#endif
+        Matrix3d Cne;
+        Cne=CalcCen(coord_blh,COORD_ENU).transpose();
+        return Cne*coord_enu;
+    }
+
+    Vector3d Enu2Ned(Vector3d& coord_enu){
+        Vector3d ned;
+        ned[0]=coord_enu[1];
+        ned[1]=coord_enu[0];
+        ned[2]=-coord_enu[2];
+        return ned;
+    }
+
+    Vector3d Ned2Enu(Vector3d& coord_ned){
+        Vector3d enu;
+        enu[0]=coord_ned[1];
+        enu[1]=coord_ned[0];
+        enu[2]=-coord_ned[2];
+
+        return enu;
+    }
+
+    // n refer to enu
+    Matrix3d CalcCen(Vector3d& coord_blh,COORDINATE_TYPE lf_type){
+        double lat=coord_blh[0],lon=coord_blh[1];
+        double sin_lat=sin(lat),cos_lat=cos(lat);
+        double sin_lon=sin(lon),cos_lon=cos(lon);
+        Matrix3d Cen;
+#if 0
+        Cne(0,0)=-sin_lat*cos_lon;
+        Cne(0,1)=-sin_lon;
+        Cne(0,2)=-cos_lat*cos_lon;
+
+        Cne(1,0)=-sin_lat*sin_lon;
+        Cne(1,1)=cos_lon;
+        Cne(1,2)=-cos_lat*sin_lon;
+
+        Cne(2,0)=cos_lat;
+        Cne(2,1)=0.0;
+        Cne(2,2)=-sin_lat;
+#endif
+        if(lf_type==COORD_ENU){
+            Cen(0,0)=-sin_lon;
+            Cen(0,1)=cos_lon;
+            Cen(0,2)=0.0;
+
+            Cen(1,0)=-sin_lat*cos_lon;
+            Cen(1,1)=-sin_lat*sin_lon;
+            Cen(1,2)=cos_lat;
+
+            Cen(2,0)=cos_lat*cos_lon;
+            Cen(2,1)=cos_lat*sin_lon;
+            Cen(2,2)=sin_lat;
+        }
+        else if(lf_type==COORD_NED){
+            Cen(0,0)=-sin_lat*cos_lon;
+            Cen(0,1)=-sin_lat*sin_lon;
+            Cen(0,2)=cos_lat;
+
+            Cen(1,0)=-sin_lon;
+            Cen(1,1)=cos_lon;
+            Cen(1,2)=0.0;
+
+            Cen(2,0)=-cos_lat*cos_lon;
+            Cen(2,1)=-cos_lat*sin_lon;
+            Cen(2,2)=-sin_lat;
+        }
+
+        return Cen;
     }
 
     cParSetting::cParSetting(){}

@@ -10,8 +10,9 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/InsFunc)
 add_subdirectory(${PROJECT_SOURCE_DIR}/Solver)
 add_subdirectory(${PROJECT_SOURCE_DIR}/AdjFunc)
 add_subdirectory(${PROJECT_SOURCE_DIR}/PlotFunc)
+add_subdirectory(${PROJECT_SOURCE_DIR}/OutSol)
 
 
 file(GLOB SRC_FILES "*.cc")
 add_library(PPPLib ${SRC_FILES})
-target_link_libraries(PPPLib CmnLib ReadLib GnssLib InsLib SolverLib AdjLib PlotLib)
+target_link_libraries(PPPLib CmnLib ReadLib GnssLib InsLib SolverLib AdjLib PlotLib OutLib)

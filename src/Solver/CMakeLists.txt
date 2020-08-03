@@ -4,4 +4,4 @@ CMAKE_POLICY(SET CMP0015 NEW)
 
 file(GLOB SRC_FILES "*.cc")
 add_library(SolverLib ${SRC_FILES})
-target_link_libraries(SolverLib CmnLib GnssLib InsLib)
+target_link_libraries(SolverLib CmnLib ReadLib GnssLib InsLib)

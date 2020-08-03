@@ -7,14 +7,20 @@
 
 namespace PPPLib {
 
-    #define SQR(x) ((x)*(x))
+    #define SQR(x)   ((x)*(x))
+    #define SQRT(x)  ((x)<0.0||(x)!=(x)?0.0:sqrt(x))
+    #define MIN(x,y) ((x)<=(y)?(x):(y))
+    #define MAX(x,y) ((x)>=(y)?(x):(y))
 
     // common constant definitions
+    const static int MAX_BUFF=4096;
     const static double PI=3.14159265358979;
     const static double CLIGHT=299792458.0;
     const static double D2R=(PI/180.0);
     const static double R2D=(180.0/PI);
     const static double AS2R=(D2R/3600);
+    const static double AU=149597870691.0;
+    const static double DTTOL=0.005;
 
     enum TIME_TYPE {
         TIME_TYPE_NONE = 0,
@@ -57,6 +63,7 @@ namespace PPPLib {
     const double WGS84_EARTH_OBLATEO=1.0/298.257223563;
     const double WGS84_FIRST_E2=0.00669437999013;
     const double WGS84_SECOND_E2=0.006739496742227;
+    const double WGS84_GM=3.986005e14;
 
     const int COORDINATE_ACCURACY=4;  // 空间直角坐标系以及大地坐标系高程方向精确度
     const int MSEC_ACCURACY=3;        // 秒的精确度(ms)
@@ -79,7 +86,7 @@ namespace PPPLib {
     };
 
     // gnss related constant definitions
-    const int GNSS_NUM_FREQ=5;
+//    const int GNSS_NUM_FREQ=5;
     const int GNSS_NUM_EXOBS=1;
     const int MAX_GNSS_OBS_TYPE=36;
     const int MAX_GNSS_FRQ_NUM=6;
@@ -241,7 +248,6 @@ namespace PPPLib {
 
     const int BD2_C2IC7I=0;
     const int BD2_C2IC6I=1;
-
     const int BD3_C1XC5X=2;
     const int BD3_C1PC5P=3;
     const int BD3_C1DC5D=4;
@@ -281,6 +287,20 @@ namespace PPPLib {
             {FREQ_QZS_L1,FREQ_QZS_L2, FREQ_QZS_L5,  FREQ_NONE,    FREQ_NONE,    FREQ_NONE},
             {FREQ_NONE,  FREQ_NONE,   FREQ_NONE,    FREQ_NONE,    FREQ_NONE,    FREQ_NONE}
     };
+
+    const double MAX_DTOE_GPS=7200.0;
+    const double MAX_DTOE_BDS=21600.0;
+    const double MAX_DTOE_GAL=10800.0;
+    const double MAX_DTOE_GLO=1800.0;
+    const double MAX_DTOE_QZS=7200.0;
+    const double OMGE_GPS=7.2921151467E-5;
+    const double OMGE_BDS=7.292115E-5;
+    const double OMGE_GAL=7.2921151467E-5;
+    const double OMGE_GLO=7.292115E-5;
+    const double MU_GPS=3.9860050E14;
+    const double MU_BDS=3.986004418E14;
+    const double MU_GAL=3.986004418E14;
+    const double MU_GLO=3.9860044E14;
 
     enum GPS_FRQ {
         GPS_L1,
@@ -411,6 +431,13 @@ namespace PPPLib {
         TRP_EST_GRAD
     };
 
+    enum GNSS_TID_OPT {
+        TID_OFF,
+        TID_SOLID,
+        TID_OCEAN,
+        TID_POLE
+    };
+
     enum GNSS_EPH_OPT {
         EPH_BRD,
         EPH_PRE
@@ -427,6 +454,7 @@ namespace PPPLib {
         ION_KLB,
         ION_TEC,
         ION_IF,
+        ION_IF2,
         ION_EST,
         ION_CONST
     };
@@ -441,6 +469,15 @@ namespace PPPLib {
         SAT_NO_USE=-1,
         SAT_USED=0,
         SAT_SLIP,
+    };
+
+    enum GNSS_OBS_COMB {
+        COMB_IF,
+        COMB_MW,
+        COMB_GF,
+        COMB_MP,
+        COMB_CSC,
+        COMB_TDCP,
     };
 
     // ins related constant definitions
@@ -464,7 +501,26 @@ namespace PPPLib {
         MODE_SPP,
         MODE_PPP,
         MODE_DGNSS,
-        MODE_PPK
+        MODE_PPK,
+        MODE_INS,
+        MODE_IGLC,
+        MODE_IGTC,
+    };
+
+    enum PPPLIB_MODE_OPT {
+        MODE_OPT_STATIC,
+        MODE_OPT_KINE_SIM,
+        MODE_OPT_KINEMATIC,
+        MODE_OPT_SPP,
+        MODE_OPT_PPP,
+        MODE_OPT_PPK
+    };
+
+    enum FUSION_GNSS_MODE {
+        GNSS_MODE_SOL,
+        GNSS_MODE_SPP,
+        GNSS_MODE_PPP,
+        GNSS_MODE_PPK,
     };
 
     enum SOL_STAT {

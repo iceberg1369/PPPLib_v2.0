@@ -13,9 +13,9 @@ namespace plt=matplotlibcpp;
 using namespace PPPLib;
 
 int test_read_ref() {
-    string ref_file="../data/cpt00870.ref";
-    cReadRefSol ref_reader(ref_file);
-    ref_reader.Reading();
+//    string ref_file="../data/cpt00870.ref";
+//    cReadRefSol ref_reader(ref_file);
+//    ref_reader.Reading();
 
     int a=1;
 }
@@ -102,17 +102,17 @@ int test_plot_sat_view(){
 }
 
 int test_read_obs(){
-    string file="../data/jfng3350.19o";
-    tNav nav;
-    cReadGnssObs obs_reader(file,nav,REC_ROVER);
-    double es[6]={2019,12,1,0,00,00};
-    double ee[6]={2019,12,1,23,59,30};
-    cTime ts(es),te(ee);
-
-    obs_reader.SetGnssSysMask(SYS_BDS);
-    obs_reader.SetGnssTimeSpan(&ts,&te);
-
-    obs_reader.Reading();
+//    string file="../data/jfng3350.19o";
+//    tNav nav;
+//    cReadGnssObs obs_reader(file,nav,REC_ROVER);
+//    double es[6]={2019,12,1,0,00,00};
+//    double ee[6]={2019,12,1,23,59,30};
+//    cTime ts(es),te(ee);
+//
+//    obs_reader.SetGnssSysMask(SYS_BDS);
+//    obs_reader.SetGnssTimeSpan(&ts,&te);
+//
+//    obs_reader.Reading();
 }
 
 

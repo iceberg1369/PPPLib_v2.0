@@ -15,6 +15,41 @@ using namespace Eigen;
 
 namespace PPPLib{
 
+    int Round(double d);
+    template <typename Iter1,typename Iter2>
+    double Dot(const Iter1 VecA,const Iter2 VecB,int SizeVec){
+        double dInn=0.0;
+
+        while (--SizeVec>=0){
+            dInn+=VecA[SizeVec]*VecB[SizeVec];
+        }
+        return dInn;
+    }
+    template <typename Iter>
+    double Norm(const Iter VecA,int SizeVec){
+        return sqrt(Dot(VecA,VecA,SizeVec));
+    }
+
+    template <typename Iter1,typename Iter2>
+    int NormV3(const Iter1 vec1,Iter2 vec2){
+        double r;
+        if((r=Norm(vec1,3))<=0.0) return 0;
+        vec2[0]=vec1[0]/r;
+        vec2[1]=vec1[1]/r;
+        vec2[2]=vec1[2]/r;
+        return 1;
+    }
+
+    template <typename Iter1,typename Iter2, typename Iter3>
+    void CrossVec3(const Iter1 vec1,const Iter2 vec2,Iter3 vec3){
+        vec3[0]=vec1[1]*vec2[2]-vec1[2]*vec2[1];
+        vec3[1]=vec1[2]*vec2[0]-vec1[0]*vec2[2];
+        vec3[2]=vec1[0]*vec2[1]-vec1[1]*vec2[0];
+    }
+
+    Eigen::Matrix3d VectorSkew(const Eigen::Vector3d& vec);
+
+
     string Doul2Str(int str_len, int dec_len, const string str_filler, const double src_num, string &dst_str);
     string Int2Str(int str_len, const string str_filler, const int src_num, string &dst_str);
     int Str2Double(string src_str,double &dst_num);
@@ -42,7 +77,7 @@ namespace PPPLib{
         cTime(const double *ep);
         cTime(string str_time);
         cTime operator=(const tTime t);
-        cTime operator+(double sec) const;
+        cTime operator+(double sec);
         void operator+=(double sec);
         ~cTime();
 
@@ -54,19 +89,19 @@ namespace PPPLib{
         double TimeDiff(tTime t1);
         int Str2Time(string s);
 
+        cTime *Epoch2Time(const double *ep);
+        void Time2Epoch();
         double Time2Gpst(int* week,int* day, int sys);
         cTime* Gpst2Time(int week, double wos, int sys);
         cTime Utc2Gpst();
         cTime Gpst2Utc();
-        cTime Gpst2Bdst() const;
-        cTime Bdst2Gpst() const;
+        cTime Gpst2Bdst();
+        cTime Bdst2Gpst();
         double Utc2Gmst(double ut1_utc);
         cTime* AdjWeek(cTime t);
         cTime* AdjDay(cTime t);
 
     private:
-        cTime *Epoch2Time(const double *ep);
-        void Time2Epoch();
 
         string Time2Str(int n);
         double Time2Doy();
@@ -83,7 +118,7 @@ namespace PPPLib{
         tTime t_;
     };
 
-
+#if 0
     class cCoord{
     public:
         cCoord();
@@ -110,22 +145,36 @@ namespace PPPLib{
 
     private:
         Vector3d coord_XYZ_;
-        Vector3d coord_ENU_;
         Vector3d coord_BLH_;
+        Vector3d coord_ENU_;
         Vector3d coord_NED_;
         Matrix3d Cne_;
     };
+#endif
+    Vector3d Xyz2Blh(Vector3d& coord_xyz);
+    Vector3d Blh2Xyz(Vector3d& coord_blh);
+    Vector3d Xyz2Enu(Vector3d& coord_blh,Vector3d& coord_xyz);
+    Vector3d Enu2Xyz(Vector3d& coord_blh,Vector3d& coord_enu);
+    Vector3d Enu2Ned(Vector3d& coord_enu);
+    Vector3d Ned2Enu(Vector3d& coord_ned);
+    Matrix3d CalcCen(Vector3d& coord_blh,COORDINATE_TYPE lf_type);
 
     typedef struct{
+        int nav_sys;
+        double ele_min;
         GNSS_FRQ_OPT frq_opt;
         int gnss_frq[NSYS+1][MAX_GNSS_USED_FRQ_NUM];
+        bool csc;
         GNSS_AC_OPT  ac_opt;
         GNSS_EPH_OPT eph_opt;
         GNSS_ION_OPT ion_opt;
         GNSS_TRP_OPT trp_opt;
+        GNSS_TID_OPT tid_opt;
+        double cs_thres[2];   //mw and gf
     }tGnssConf;
 
     typedef struct{
+        FUSION_GNSS_MODE gnss_opt;
 
     }tInsConf;
 
@@ -140,17 +189,25 @@ namespace PPPLib{
         string atx;
         string gim;
         string blq;
+        string imu;
         string ref;
         string sol;
     }tFileConf;
 
     typedef struct{
+        bool out_err;
+        COORDINATE_TYPE sol_coord;
+    }tSolConf;
+
+    typedef struct{
         PPPLIB_MODE mode;
+        PPPLIB_MODE_OPT mode_opt;
         int dynamic;
         SOLVE_ESTIMATOR estimator;
         tGnssConf gnssC;
         tInsConf  insC;
         tFileConf fileC;
+        tSolConf  solC;
     }tPPPLibConf;
 
     typedef struct {
@@ -163,9 +220,9 @@ namespace PPPLib{
         double rec_ifb[NSYS];
         Vector2d zenith_trp_delay; // dry and wet
 
-        Vector3d att;  //roll pitch yaw
-        Vector3d gyro_bias;
-        Vector3d accl_bias;
+        Vector3d att{0,0,0};  //roll pitch yaw
+        Vector3d gyro_bias{0,0,0};
+        Vector3d accl_bias{0,0,0};
     }tSolInfoUnit;
 
     class cParSetting{
@@ -181,7 +238,6 @@ namespace PPPLib{
         int GetDgnssParNum();
         int GetPpkParNum();
 
-    private:
         int PvaParNum();
         int RecClkParNum();
         int RecDcbParNum();
@@ -200,9 +256,11 @@ namespace PPPLib{
         int ParIndexIon(int sat_no);
         int ParIndexAmb(int f,int sat_no);
 
-    private:
+    public:
         tPPPLibConf PPPLibC_;
     };
+
+
 }
 
 

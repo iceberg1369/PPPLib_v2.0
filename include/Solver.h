@@ -8,15 +8,10 @@
 #include "GnssFunc.h"
 #include "GnssErrorModel.h"
 #include "InsFunc.h"
+#include "AdjFunc.h"
+#include "OutSol.h"
 
 namespace PPPLib{
-
-    typedef struct {
-        double P1,P2,P3;
-        double L1,L2,L3;
-        double f1,f2,f3;
-        double D;
-    }tCorrGnssMeasUnit;
 
     class cSolver {
     public:
@@ -24,24 +19,44 @@ namespace PPPLib{
         virtual ~cSolver();
 
     public:
-        void MakeObsComb(tPPPLibConf C);
-        void OutGnssObs(tSatInfoUnit sat_info,int f);
-        void ReAlignObs(tSatInfoUnit& sat_info, tSatObsUnit sat_obs,int f,int frq_idx);
         void UpdateGnssObs(tPPPLibConf C);
-        virtual void GnssErrCorr(Vector3d blh,tSatInfoUnit& sat_info);
-        virtual int GnssObsRes(int post,tPPPLibConf C);
-        virtual void InitSolver();
-        virtual bool SolverProcess();
+        virtual int GnssObsRes(int post,tPPPLibConf C,double* x);
+
+        virtual void InitSolver(tPPPLibConf C);
+        virtual bool SolverProcess(tPPPLibConf C);
+        virtual bool SolverEpoch();
         virtual bool Estimator(tPPPLibConf C);
         virtual bool SolutionUpdate();
 
     public:
+        cGnssObsOperator gnss_obs_operator_;
+        cGnssErrCorr gnss_err_corr_;
+        cParSetting para_;
+        cLsqAdjuster lsq_;
+        cOutSol *out_;
+
+    public:
+        int epoch_idx_;
         tNav nav_;
         cGnssObs rover_obs_;
-        vector<tSolInfoUnit> sol_collect_;
-        tSatInfoUnit previous_sat_info_[MAX_SAT_NUM];
+        vector<tSolInfoUnit> ref_sols_;
+
         tEpochSatUnit epoch_sat_obs_;
         vector<tSatInfoUnit> epoch_sat_info_collect_;
+
+        tSolInfoUnit ppplib_sol_;
+        vector<tSolInfoUnit> sol_collect_;
+        tSatInfoUnit previous_sat_info_[MAX_SAT_NUM];
+
+    public:
+        int num_full_x_,num_zip_x_;
+        VectorXd full_x_;
+        MatrixXd full_Px_;
+        int num_valid_sat_;
+        int num_L_;
+        VectorXd omc_L_;
+        MatrixXd H_;
+        MatrixXd R_;
     };
 
     class cSppSolver:public cSolver {
@@ -51,68 +66,85 @@ namespace PPPLib{
         ~cSppSolver();
 
     public:
-        int GnssObsRes(int post,tPPPLibConf C) override;
-        void GnssErrCorr(Vector3d blh,tSatInfoUnit& sat_info) override;
-        void InitSolver() override;
-        bool SolverProcess() override;
+        void CorrGnssObs();
+        int GnssObsRes(int post,tPPPLibConf C,double* x) override;
+        void InitSolver(tPPPLibConf C) override;
+        bool SolverProcess(tPPPLibConf C) override;
+        bool SolverEpoch() override;
         bool Estimator(tPPPLibConf C) override;
         bool SolutionUpdate() override;
 
     private:
-        void CorrGnssObs();
-
-    private:
-        int iter_=1;
-        tPPPLibConf spp_conf_;
-        cParSetting spp_para_;
-        cGnssErrCorr spp_err_corr_;
-
+        int iter_=10;
     public:
-        int num_full_x_,num_zip_x_;
-        vector<double> full_x_,full_Px,zip_x_,zip_Px;
-        tSolInfoUnit spp_sols_;
+        tPPPLibConf spp_conf_;
     };
 
-//    class cPppSolver:public cSolver {
-//    public:
-//        cPppSolver();
-//        ~cPppSolver();
-//
-//    public:
-//        bool SolverStart() override;
-//
-//    private:
-//        cSppSolver spp_solver_;
-//        tPPPLibConf ppp_conf_;
-//        cGnssError ppp_err_model_;
-//
-//    public:
-//        tSolInfoUnit ppp_sols_;
-//    };
-//
-//    class cPpkSolver:public cSolver {
-//    public:
-//        cPpkSolver();
-//        ~cPpkSolver();
-//
-//    private:
-//        cGnssObs base_obs_;
-//        cSppSolver spp_solver_;
-//        cGnssError ppk_err_model_;
-//        tPPPLibConf ppk_conf_;
-//
-//    public:
-//        tSolInfoUnit ppk_sols_;
-//    };
-//
-//    class cFusionSolver:public cSolver {
-//    public:
-//        cFusionSolver();
-//        ~cFusionSolver();
-//
-//    private:
-//        cImuData imu_data_;
-//    };
+    class cPppSolver:public cSolver {
+    public:
+        cPppSolver();
+        cPppSolver(tPPPLibConf C);
+        ~cPppSolver();
+
+    public:
+        void InitSolver(tPPPLibConf C) override;
+        bool SolverProcess(tPPPLibConf C) override;
+        bool SolverEpoch() override;
+
+    private:
+        tPPPLibConf ppp_conf_;
+
+    public:
+        cSppSolver *spp_solver_;
+    };
+
+    class cPpkSolver:public cSolver {
+    public:
+        cPpkSolver();
+        cPpkSolver(tPPPLibConf C);
+        ~cPpkSolver();
+
+    public:
+        void InitSolver(tPPPLibConf C) override;
+        bool SolverProcess(tPPPLibConf C) override;
+        bool SolverEpoch() override;
+
+    private:
+        cGnssObs base_obs_;
+        cSppSolver *spp_solver_;
+        tPPPLibConf ppk_conf_;
+    };
+
+    class cFusionSolver:public cSolver {
+    public:
+        cFusionSolver();
+        cFusionSolver(tPPPLibConf C);
+        ~cFusionSolver();
+
+    private:
+        bool InputImuData(int ws);
+        bool MatchGnssObs();
+
+    public:
+        void InitSolver(tPPPLibConf C) override;
+        bool SolverProcess(tPPPLibConf C) override;
+        bool SolverEpoch() override;
+
+    private:
+        cInsMech ins_mech_;
+        cSolver *gnss_solver_;
+        tPPPLibConf fs_conf_;
+
+    private:
+        cImuData imu_data_;
+
+    private:
+        int imu_index_=0;
+        int rover_idx_=0;
+        tImuDataUnit cur_imu_data_={0};
+        tImuDataUnit pre_imu_data_={0};
+        vector<tImuDataUnit> imu_data_zd_;
+    };
 }
 
 

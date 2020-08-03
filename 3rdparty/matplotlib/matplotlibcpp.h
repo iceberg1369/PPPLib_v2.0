@@ -1288,7 +1288,7 @@ bool errorbar(const std::vector<NumericX> &x, const std::vector<NumericY> &y, co
 }
 
 template<typename Numeric>
-bool named_plot(const std::string& name, const std::vector<Numeric>& y, const std::string& format = "")
+bool named_plot(std::string name, const std::vector<Numeric>& y, const std::string& format = "")
 {
     detail::_interpreter::get();
 

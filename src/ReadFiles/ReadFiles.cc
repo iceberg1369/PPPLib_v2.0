@@ -286,6 +286,7 @@ namespace PPPLib{
             signal_.code[i]=Signal2Code(obs_code_type[i].substr(1),signal_.frq+i,sat_sys);
             signal_.type[i]=((p=kGnssObsCode.find(obs_code_type[i][0]))!=string::npos)?(int)p:0;
             signal_.pri[i]=GetCodePri(sat_sys,signal_.code[i]);
+            signal_.pos[i]=-1;
         }
 
         for(i=0;i<MAX_GNSS_FRQ_NUM;i++){
@@ -370,6 +371,8 @@ namespace PPPLib{
 
         if(rnx_ver_>2.99){
             sat_id=line_str_.substr(0,3);
+            if(!sat_id.compare(0,1,"S")) return false;
+            if(!sat_id.compare(0,1,"I")) return false;
             if(!sat_id.compare(1,1," ")) sat_id[1]='0';
             obs.sat=cSat(sat_id);
             obs.sat.SatId2No();
@@ -467,7 +470,7 @@ namespace PPPLib{
 
     bool cReadGnssObs::ReadHead() {
         int i,j,k,num_signal,idx_signal,num_line=0,prn,fcn;
-        tStaInfoUnit *sta=gnss_data_->GetStation();
+        tStaInfoUnit *sta=&nav_->sta_paras[GetGnssData()->rcv_idx_];
 
         if(!ReadRnxHead()) return false;
 
@@ -1078,15 +1081,17 @@ namespace PPPLib{
                     for(i=0;i<MAX_GNSS_CODE_BIAS_PAIRS;i++){
                         if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_GPS][i]) break;
                     }
-
                     nav_->code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
                 }
                 else if(sat.sat_.sys==SYS_BDS){
                     for(i=0;i<MAX_GNSS_CODE_BIAS_PAIRS;i++){
-                        if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_BDS][i]) break;
                         if(sat.sat_.prn>18){
-                            if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_BDS][i+2]) break;
+                            if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_BDS][i]){
+                                if(i==1) i=BD3_C2IC6I;
+                                break;
+                            }
                         }
+                        else if(code_pair==kGnssCodeBiasPairs[SYS_INDEX_BDS][i]) break;
                     }
                     nav_->code_bias[sat.sat_.no-1][i]=cbias*1E-9*CLIGHT;
                 }
@@ -1212,10 +1217,43 @@ namespace PPPLib{
 
     cReadGnssAntex::cReadGnssAntex(string file_path, PPPLib::tNav &nav) {
         file_=file_path;
-        nav_=&nav;
     }
 
     cReadGnssAntex::~cReadGnssAntex() {}
+
+    tAntUnit* cReadGnssAntex::SearchAntPar(cTime t,int sat, const string &type) {
+        int i,j;
+        tAntUnit *ant=nullptr;
+        if(sat){
+            for(i=0;i<ant_paras_.size();i++){
+                ant=&ant_paras_.at(i);
+                if(ant->sat.sat_.no!=sat) continue;
+                if(ant->ts.t_.long_time!=0.0&&(ant->ts.TimeDiff(t.t_)>0.0)) continue;
+                if(ant->te.t_.long_time!=0.0&&(ant->te.TimeDiff(t.t_)<0.0)) continue;
+                return ant;
+            }
+        }
+        else{
+            int n=0;
+            char *p,*types[2];
+            const string& buff=type;
+            for(p=strtok((char*)buff.c_str()," ");p&&n<2;p=strtok(nullptr," ")) types[n++]=p;
+            if(n<=0) return nullptr;
+
+            for(i=0;i<ant_paras_.size();i++){
+                ant=&ant_paras_.at(i);
+                for(j=0;j<n;j++) if(!strstr(ant->ant_type.c_str(),types[j])) break;
+                if(j>=n) return ant;
+            }
+
+            for(i=0;i<ant_paras_.size();i++){
+                ant=&ant_paras_.at(i);
+                if(strstr(ant->ant_type.c_str(),types[0])!=ant->ant_type) continue;
+                return ant;
+            }
+        }
+        return nullptr;
+    }
 
     int cReadGnssAntex::DecodeAntPcv(char* p,int n,double* v) {
         int i;
@@ -1234,34 +1272,35 @@ namespace PPPLib{
         while(getline(inf_,line_str_)&&!inf_.eof()){
             if(line_str_.length()<60||line_str_.find("COMMENT",60)!=string::npos) continue;
             if(line_str_.find("START OF ANTENNA",60)!=string::npos){
-                nav_->ant_paras.push_back(ant0);stat=1;
+                ant_paras_.push_back(ant0);stat=1;
             }
             if(line_str_.find("END OF ANTENNA",60)!=string::npos) stat=0;
             if(!stat) continue;
 
             if(line_str_.find("TYPE / SERIAL NO",60)!=string::npos){
-                nav_->ant_paras.back().ant_type=line_str_.substr(0,20);
-                nav_->ant_paras.back().ser_code=line_str_.substr(20,20);
-                nav_->ant_paras.back().ant_type=StrTrim(nav_->ant_paras.back().ant_type);
-                if(nav_->ant_paras.back().ser_code.compare(3,8,"        ")==0){
-                    nav_->ant_paras.back().sat=cSat(nav_->ant_paras.back().ser_code.substr(0,3));
-                    nav_->ant_paras.back().sat.SatId2No();
+                ant_paras_.back().ant_type=line_str_.substr(0,20);
+                ant_paras_.back().ser_code=line_str_.substr(20,20);
+                ant_paras_.back().ant_type=StrTrim(ant_paras_.back().ant_type);
+                if(ant_paras_.back().ser_code.compare(3,8,"        ")==0){
+                    if(!ant_paras_.back().ser_code.substr(0,3).compare(0,1,"I")) continue;
+                    ant_paras_.back().sat=cSat(ant_paras_.back().ser_code.substr(0,3));
+                    ant_paras_.back().sat.SatId2No();
                 }
-                nav_->ant_paras.back().ser_code=StrTrim(nav_->ant_paras.back().ser_code);
+                ant_paras_.back().ser_code=StrTrim(ant_paras_.back().ser_code);
             }
             else if(line_str_.find("VALID FROM",60)!=string::npos){
-                if(!nav_->ant_paras.back().ts.Str2Time(line_str_.substr(0,43))) continue;
+                if(!ant_paras_.back().ts.Str2Time(line_str_.substr(0,43))) continue;
             }
             else if(line_str_.find("VALID UNTIL",60)!=string::npos){
-                if(!nav_->ant_paras.back().te.Str2Time(line_str_.substr(0,43))) continue;
+                if(!ant_paras_.back().te.Str2Time(line_str_.substr(0,43))) continue;
             }
             else if(line_str_.find("DAZI",60)!=string::npos){
-                Str2Double(line_str_.substr(2,6),nav_->ant_paras.back().dazi); continue;
+                Str2Double(line_str_.substr(2,6),ant_paras_.back().dazi); continue;
             }
             else if(line_str_.find("ZEN1 / ZEN2 / DZEN")!=string::npos) {
-                Str2Double(line_str_.substr(2,6),nav_->ant_paras.back().zen1);
-                Str2Double(line_str_.substr(8,6),nav_->ant_paras.back().zen2);
-                Str2Double(line_str_.substr(14,6),nav_->ant_paras.back().dzen);
+                Str2Double(line_str_.substr(2,6),ant_paras_.back().zen1);
+                Str2Double(line_str_.substr(8,6),ant_paras_.back().zen2);
+                Str2Double(line_str_.substr(14,6),ant_paras_.back().dzen);
                 continue;
             }
             else if(line_str_.find("START OF FREQUENCY",60)!=string::npos){
@@ -1296,19 +1335,19 @@ namespace PPPLib{
                 double neu[3]={0};
                 if(frq<1) continue;
                 if(sscanf(line_str_.c_str(),"%lf %lf %lf",neu,neu+1,neu+2)<3) continue;
-                nav_->ant_paras.back().pco[frq-1][0]=1E-3*neu[nav_->ant_paras.back().sat.sat_.no?0:1];
-                nav_->ant_paras.back().pco[frq-1][1]=1E-3*neu[nav_->ant_paras.back().sat.sat_.no?1:0];
-                nav_->ant_paras.back().pco[frq-1][2]=1E-3*neu[2];
+                ant_paras_.back().pco[frq-1][0]=1E-3*neu[ant_paras_.back().sat.sat_.no?0:1];
+                ant_paras_.back().pco[frq-1][1]=1E-3*neu[ant_paras_.back().sat.sat_.no?1:0];
+                ant_paras_.back().pco[frq-1][2]=1E-3*neu[2];
             }
             else if(line_str_.find("NOAZI")!=string::npos){
                 if(frq<1) continue;
-                double dd=(nav_->ant_paras.back().zen2-nav_->ant_paras.back().zen1)/nav_->ant_paras.back().dzen+1;
+                double dd=(ant_paras_.back().zen2-ant_paras_.back().zen1)/ant_paras_.back().dzen+1;
                 if(dd!=round(dd)||dd<=1){
                     LOG_N_TIMES(1,WARNING)<<"Number of PCV NOAZI parameter decode error";
                     continue;
                 }
-                if(nav_->ant_paras.back().dazi==0.0){
-                    i=DecodeAntPcv(const_cast<char*>(line_str_.c_str()+8),(int)dd,nav_->ant_paras.back().pcv[frq-1]);
+                if(ant_paras_.back().dazi==0.0){
+                    i=DecodeAntPcv(const_cast<char*>(line_str_.c_str()+8),(int)dd,ant_paras_.back().pcv[frq-1]);
                     if(i<=0) {
                         LOG_N_TIMES(1,WARNING)<<"Number of PCV NOAZI parameter decode error";
                         continue;
@@ -1319,10 +1358,10 @@ namespace PPPLib{
                     }
                 }
                 else{
-                    int id=(int)(360-0)/nav_->ant_paras.back().dazi+1;
+                    int id=(int)(360-0)/ant_paras_.back().dazi+1;
                     for(i=0;i<id;i++){
                         getline(inf_,line_str_);
-                        int j=DecodeAntPcv(const_cast<char*>(line_str_.c_str()+8),(int)dd,&nav_->ant_paras.back().pcv[frq-1][i*(int)dd]);
+                        int j=DecodeAntPcv(const_cast<char*>(line_str_.c_str()+8),(int)dd,&ant_paras_.back().pcv[frq-1][i*(int)dd]);
                         if(j<=0){
                             LOG_N_TIMES(1,WARNING)<<"Number of PCV AZI parameter decode error";
                             continue;
@@ -1334,6 +1373,30 @@ namespace PPPLib{
                     }
                 }
             }
+        }
+    }
+
+    void cReadGnssAntex::AlignAntPar2Sat(tPPPLibConf C,cTime t, tStaInfoUnit* sta,tAntUnit *sat_ant, tAntUnit *rec_ant) {
+        int i;
+        tAntUnit *ant;
+        cSat sat;
+
+        for(i=0;i<MAX_SAT_NUM;i++){
+            sat=cSat(i+1);
+            if(sat.sat_.sys&C.gnssC.nav_sys){
+                if(!(ant=SearchAntPar(t,sat.sat_.no,""))){
+                    continue;
+                }
+                sat_ant[i]=*ant;
+            }
+        }
+
+        int dgnss=(C.mode==MODE_DGNSS||C.mode==MODE_PPK);
+        for(i=0;i<dgnss?2:1;i++){
+            if(!(ant=SearchAntPar(t,0,sta[i].ant_desc))){
+                return;
+            }
+            else rec_ant[i]=*ant;
         }
     }
 
@@ -1517,7 +1580,7 @@ namespace PPPLib{
 
     cReadRefSol::cReadRefSol() {}
 
-    cReadRefSol::cReadRefSol(string file_path) {file_=file_path;}
+    cReadRefSol::cReadRefSol(string file_path,vector<tSolInfoUnit>& ref_sol) {file_=file_path;ref_sols_=&ref_sol;}
 
     cReadRefSol::~cReadRefSol() {}
 
@@ -1563,12 +1626,12 @@ namespace PPPLib{
             sol.gyro_bias[1]=atof(token);
             token=strtok(NULL,seps);
             sol.gyro_bias[2]=atof(token);
-            ref_sols.push_back(sol);
+            ref_sols_->push_back(sol);
         }
 
     }
 
-    vector<tSolInfoUnit> cReadRefSol::GetRefSols() {return ref_sols;}
+    vector<tSolInfoUnit> cReadRefSol::GetRefSols() {return *ref_sols_;}
 
     bool cReadRefSol::Reading() {
         if(!OpenFile()){

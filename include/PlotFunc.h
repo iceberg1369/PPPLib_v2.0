@@ -25,7 +25,7 @@ namespace PPPLib {
 
         void PlotImuData(const vector<tImuDataUnit>& imus);
 
-    private:
+    public:
         double w_,h_;
         bool show_flag_;
         string path_;
@@ -46,6 +46,15 @@ namespace PPPLib {
 
     private:
         vector<tEpochSatUnit> obs_;
+    };
+
+    class cPlotSol:public cPlot{
+    public:
+        cPlotSol();
+        ~cPlotSol();
+
+    public:
+        void PlotSolPos(tSolInfoUnit sol,int epoch);
     };
 
 }

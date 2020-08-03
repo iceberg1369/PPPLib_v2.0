@@ -106,24 +106,6 @@ namespace PPPLib{
         vector<float>  rms;
     }tTecUnit;
 
-    typedef struct{
-        vector<tBrdEphUnit>    brd_eph;
-        vector<tBrdGloEphUnit> brd_glo_eph;
-        vector<tPreOrbUnit> pre_eph;
-        vector<tPreClkUnit> pre_clk;
-        vector<tErpUnit>erp_paras;
-        vector<tAntUnit>ant_paras;
-        vector<tTecUnit>tec_paras;
-
-        int glo_frq_num[GLO_MAX_PRN+1];
-        double glo_cp_bias[4];
-        int leaps;
-        double ion_para[NSYS][8];
-        double utc_para[NSYS][4];
-        double code_bias[MAX_SAT_NUM][MAX_GNSS_CODE_BIAS_PAIRS];
-        double ocean_paras[2][6*11];
-    }tNav;
-
     typedef struct {
         string name;
         string marker;
@@ -137,14 +119,37 @@ namespace PPPLib{
     }tStaInfoUnit;
 
     typedef struct{
+        vector<tBrdEphUnit>    brd_eph;
+        vector<tBrdGloEphUnit> brd_glo_eph;
+        vector<tPreOrbUnit> pre_eph;
+        vector<tPreClkUnit> pre_clk;
+        vector<tErpUnit>erp_paras;
+//        vector<tAntUnit>ant_paras;
+        vector<tTecUnit>tec_paras;
+
+        tStaInfoUnit sta_paras[2];
+        tAntUnit sat_ant[MAX_SAT_NUM];
+        tAntUnit rec_ant[2];
+
+        int glo_frq_num[GLO_MAX_PRN+1];
+        double glo_cp_bias[4];
+        int leaps;
+        double ion_para[NSYS][8];
+        double utc_para[NSYS][4];
+        double code_bias[MAX_SAT_NUM][MAX_GNSS_CODE_BIAS_PAIRS];
+        double ocean_paras[2][6*11];
+    }tNav;
+
+    typedef struct{
         cSat sat;
-        double P[GNSS_NUM_FREQ+GNSS_NUM_EXOBS];
-        unsigned char code[GNSS_NUM_FREQ+GNSS_NUM_EXOBS];
-        double L[GNSS_NUM_FREQ+GNSS_NUM_EXOBS];
-        float D[GNSS_NUM_FREQ+GNSS_NUM_EXOBS];
-        unsigned char SNR[GNSS_NUM_FREQ+GNSS_NUM_EXOBS];
-        unsigned char LLI[GNSS_NUM_FREQ+GNSS_NUM_EXOBS];
-        double frq[GNSS_NUM_FREQ+GNSS_NUM_EXOBS];
+        double P[MAX_GNSS_FRQ_NUM+GNSS_NUM_EXOBS];
+        unsigned char code[MAX_GNSS_FRQ_NUM+GNSS_NUM_EXOBS];
+        double L[MAX_GNSS_FRQ_NUM+GNSS_NUM_EXOBS];
+        float D[MAX_GNSS_FRQ_NUM+GNSS_NUM_EXOBS];
+        unsigned char SNR[MAX_GNSS_FRQ_NUM+GNSS_NUM_EXOBS];
+        unsigned char LLI[MAX_GNSS_FRQ_NUM+GNSS_NUM_EXOBS];
+        double frq[MAX_GNSS_FRQ_NUM+GNSS_NUM_EXOBS];
+        double CSC_P[MAX_GNSS_FRQ_NUM];
     }tSatObsUnit;
 
     typedef struct{
@@ -166,11 +171,14 @@ namespace PPPLib{
         vector<tEpochSatUnit>& GetGnssObs();
         tStaInfoUnit* GetStation();
 
+        void CarrierSmoothCode(int smooth_length);
+
     public:
         int epoch_num;
+        double sample_;
+        RECEIVER_INDEX rcv_idx_;
 
     private:
-        RECEIVER_INDEX rcv_idx_;
         cTime ts_,te_;
         vector<tEpochSatUnit> obs_;
         tStaInfoUnit station_;
@@ -179,6 +187,7 @@ namespace PPPLib{
     typedef struct{
         cSat sat;
         cTime t_tag;
+        cTime t_trans;
         GNSS_SAT_STAT stat;
         int brd_eph_index;
 
@@ -187,26 +196,29 @@ namespace PPPLib{
         double raw_L[MAX_GNSS_USED_FRQ_NUM];
         double raw_D[MAX_GNSS_USED_FRQ_NUM];
         double raw_S[MAX_GNSS_USED_FRQ_NUM];
+        double csc_P[MAX_GNSS_USED_FRQ_NUM];
         double cor_P[MAX_GNSS_USED_FRQ_NUM];        // corrected code bias BDS satellite-specific multipath
-        double cor_L[MAX_GNSS_USED_FRQ_NUM];        // corrected phase wind-up
-        double cor_if_P[MAX_GNSS_USED_FRQ_NUM];     // L1L2 L1L5 L1L2L5
-        double cor_if_L[MAX_GNSS_USED_FRQ_NUM];
+        double cor_L[MAX_GNSS_USED_FRQ_NUM];        // corrected phase bias for PPP-AR
         double lam[MAX_GNSS_USED_FRQ_NUM];
         double frq[MAX_GNSS_USED_FRQ_NUM];
 
         Vector3d brd_pos;
+        Vector3d brd_vel;
         Vector2d brd_clk;  // clk, clk-rate
         Vector3d pre_pos;
+        Vector3d pre_vel;
         Vector2d pre_clk;
 
         Vector2d trp_dry_delay; // slant_dry,map_dry
         Vector4d trp_wet_delay; // slant_wet,map_wet,grand_e,grand_n
         Vector2d ion_delay; // L1_slant_ion, map_ion;
+        double clk_rel;
 
         double code_bias[MAX_GNSS_USED_FRQ_NUM];
         double bd2_mp[3];
         double phase_wp;
         double float_amb[MAX_GNSS_USED_FRQ_NUM]; //L1,L2,L5
+        double if_amb[MAX_GNSS_USED_FRQ_NUM];      //L1_l2, L1_L5, L1_L2_L5
 
         double omc_P[MAX_GNSS_USED_FRQ_NUM];
         double omc_L[MAX_GNSS_USED_FRQ_NUM];
@@ -217,13 +229,53 @@ namespace PPPLib{
         double post_res_L[MAX_GNSS_USED_FRQ_NUM];
 
         Vector2d el_az;
-        double if_amb[MAX_GNSS_USED_FRQ_NUM];      //L1_l2, L1_L5, L1_L2_L5
-        Vector2d raw_mw_amb;  //L1_L2, L1_L5
-        Vector2d sm_mw_amb;   //L1_L2, L1_L5
+        Vector2d raw_mw;  //L1_L2, L1_L5
+        Vector2d sm_mw;   //L1_L2, L1_L5
+        Vector2d var_mw;
+        int mw_idx[2];
         Vector2d gf;          //L1_L2, L1_L5
         Vector2d multipath_comb;
+        double tdcp;
+        double cmc_P;             // code minus carrier
+        double cor_if_P[2];     // SF-IF or DF-IF or TF-IF1/TF-IF2
+        double cor_if_L[2];
+
+        int svh;
+        double brd_eph_var;
+        double pre_eph_var;
+        double ion_var;
+        double trp_var;
+
     }tSatInfoUnit;
 
+    class cGnssObsOperator {
+    public:
+        cGnssObsOperator();
+        ~cGnssObsOperator();
+
+    private:
+        void SmoothMw(tPPPLibConf C,tSatInfoUnit* sat_info);
+
+    public:
+        void ReAlignObs(tPPPLibConf C,tSatInfoUnit& sat_info, tSatObsUnit sat_obs,int f,int frq_idx);
+
+        double GnssObsIfComb(double obs1,double obs2,double f1,double f2);
+        double GnssObsMwComb(double obs_P1,double obs_P2,double obs_L1,double obs_L2,double lam1,double lam2);
+        double GnssObsGfComb(double obs1,double obs2);
+        double GnssObsCmcComb(double obs_P,double obs_L1,double obs_L2,double f1,double f2);
+        double GnssObsTdComb(double cur_obs,double pre_obs);
+        void MakeGnssObsComb(tPPPLibConf C,GNSS_OBS_COMB type,tSatInfoUnit* sat_info,const tSatInfoUnit previous_sat_info);
+
+        void MwCycleSlip(tPPPLibConf C,double sample_dt,double dt,tSatInfoUnit* sat_info,tTime last_time);
+        void GfCycleSlip(tPPPLibConf C,double sample_dt,double dt,tSatInfoUnit* sat_info);
+        void LliCycleSlip();
+
+    };
+
+    double GeoDist(Vector3d sat_pos,Vector3d rec_pos,Vector3d& sig_vec);
+    double SatElAz(Vector3d rec_blh,Vector3d sig_vec,Vector2d& el_az);
+    double GnssMeasVar(tPPPLibConf C, GNSS_OBS obs_type,tSatInfoUnit sat_info);
+    double SunMoonPos(cTime ut1t,const double *erp_val,Vector3d& sun_pos, Vector3d& moon_pos);
 }
 
 

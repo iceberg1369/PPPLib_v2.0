@@ -12,11 +12,32 @@ namespace PPPLib{
     class cAdjuster {
     public:
         cAdjuster();
-        ~cAdjuster();
+        virtual ~cAdjuster();
 
-    private:
+    public:
+        virtual int Adjustment(VectorXd L,const MatrixXd H,const MatrixXd R,VectorXd& X, MatrixXd& Px,int nl,int nx);
 
+    public:
+        VectorXd dx_;
+        VectorXd v_;
+    };
 
+    class cLsqAdjuster:public cAdjuster{
+    public:
+        cLsqAdjuster();
+        ~cLsqAdjuster();
+
+    public:
+        int Adjustment(VectorXd L,const MatrixXd H,const MatrixXd R,VectorXd& X, MatrixXd& Px,int nl,int nx);
+    };
+
+    class cKfAdjuster:public cAdjuster{
+    public:
+        cKfAdjuster();
+        ~cKfAdjuster();
+
+    public:
+        int Adjustment(VectorXd L,const MatrixXd H,const MatrixXd R,VectorXd& X, MatrixXd& Px,int nl,int nx);
     };
 }
 

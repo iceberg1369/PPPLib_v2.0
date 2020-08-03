@@ -244,14 +244,16 @@ namespace PPPLib {
         ~cReadGnssAntex();
 
     private:
+        tAntUnit* SearchAntPar(cTime t,int sat,const string& type);
         int DecodeAntPcv(char* p,int n,double *v);
         void ReadAntBody();
 
     public:
+        void AlignAntPar2Sat(tPPPLibConf C,cTime t,tStaInfoUnit* sta,tAntUnit* sat_ant, tAntUnit* rec_ant);
         bool Reading() override;
 
     private:
-        tNav* nav_;
+        vector<tAntUnit> ant_paras_;
     };
 
     class cReadGnssIonex:public cReadFile {
@@ -281,7 +283,7 @@ namespace PPPLib {
     class cReadRefSol:public cReadFile {
     public:
         cReadRefSol();
-        cReadRefSol(string file_path);
+        cReadRefSol(string file_path,vector<tSolInfoUnit>& ref_sol);
         ~cReadRefSol();
 
     private:
@@ -292,7 +294,7 @@ namespace PPPLib {
         bool Reading() override;
 
     private:
-        vector<tSolInfoUnit> ref_sols;
+        vector<tSolInfoUnit>* ref_sols_;
     };
 }
 
