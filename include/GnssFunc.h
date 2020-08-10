@@ -229,6 +229,7 @@ namespace PPPLib{
         double post_res_P[MAX_GNSS_USED_FRQ_NUM];
         double post_res_L[MAX_GNSS_USED_FRQ_NUM];
 
+        Vector3d sig_vec;
         Vector2d el_az;
         Vector2d raw_mw;  //L1_L2, L1_L5
         Vector2d sm_mw;   //L1_L2, L1_L5
@@ -262,7 +263,7 @@ namespace PPPLib{
 
         double GnssObsIfComb(double obs1,double obs2,double f1,double f2);
         double GnssObsMwComb(double obs_P1,double obs_P2,double obs_L1,double obs_L2,double lam1,double lam2);
-        double GnssObsGfComb(double obs1,double obs2);
+        double GnssObsGfComb(double obs1,double obs2,double lam1,double lam2);
         double GnssObsCmcComb(double obs_P,double obs_L1,double obs_L2,double f1,double f2);
         double GnssObsTdComb(double cur_obs,double pre_obs);
         void MakeGnssObsComb(tPPPLibConf C,GNSS_OBS_COMB type,tSatInfoUnit* sat_info,const tSatInfoUnit previous_sat_info);

@@ -467,21 +467,34 @@ namespace PPPLib {
     enum GNSS_SAT_STAT {
         SAT_NO_USE=-1,
         SAT_USED=0,
-        SAT_NO_OBS=1,
+        SAT_NO_PR=1,
+        SAT_NO_CP,
         SAT_NO_PROD,
         SAT_LOW_EL,
-        SAT_PRIOR_RES,
+        SAT_PRI_RES_C,
+        SAT_PRI_RES_P,
         SAT_SLIP,
     };
 
     const string kGnssSatStatStr[]{
         "NO_USE",
         "USED",
-        "NO_OBS",
+        "NO_PR",
+        "NO_CP",
         "NO_PROD",
         "LOE_EL",
-        "PRIOR_RES",
+        "PRIOR_RES_C",
+        "PRIOR_RES_P",
         "SLIP",
+    };
+
+    const string kGnssSysStr[]{
+        "NONE",
+        "GPS",
+        "BDS",
+        "GAL",
+        "GLO",
+        "QZS"
     };
 
     enum GNSS_OBS_COMB {
@@ -525,7 +538,7 @@ namespace PPPLib {
     };
 
     enum PPPLIB_MODE {
-        MODE_SPP,
+        MODE_SPP=0,
         MODE_PPP,
         MODE_DGNSS,
         MODE_PPK,
@@ -535,7 +548,7 @@ namespace PPPLib {
     };
 
     enum PPPLIB_MODE_OPT {
-        MODE_OPT_STATIC,
+        MODE_OPT_STATIC=0,
         MODE_OPT_KINE_SIM,
         MODE_OPT_KINEMATIC,
         MODE_OPT_SPP,

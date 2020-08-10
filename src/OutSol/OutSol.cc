@@ -61,8 +61,9 @@ namespace PPPLib{
             dsol=CompareSol(sol,ref_sols_.at(ref_index_));
         }
         else dsol=sol;
-        plot_sol_->PlotSolPos(dsol,epoch);
-//        plot_sat_->PlotMwAmb(sat_info,epoch);
+//        plot_sol_->PlotSolPos(dsol,epoch);
+        plot_sat_->PlotMwAmb(sat_info,epoch);
+//        plot_sat_->PlotGfComb(sat_info,epoch);
     }
 
 }

@@ -770,7 +770,7 @@ namespace PPPLib{
             if(PPPLibC_.mode_opt==MODE_OPT_KINEMATIC||PPPLibC_.dynamic) return 1+1; //code+doppler
         }
         else{
-            if(PPPLibC_.mode_opt==MODE_OPT_KINEMATIC||PPPLibC_.dynamic) return 1+1+1; //code+doppler+phase
+            if(PPPLibC_.mode_opt==MODE_OPT_KINEMATIC||PPPLibC_.dynamic) return 1+1; //code+doppler+phase
         }
     }
 
@@ -787,6 +787,12 @@ namespace PPPLib{
         int d=NumClk();
         int e=NumBa();
         int f=NumBg();
+        int g=NumDcb();
+        int h=NumIfb();
+        int i=NumGloIfcb();
+        int j=NumTrp();
+        int k=NumIon();
+        int l=NumAmb();
         return NumPos()+NumVel()+NumAtt()+NumBa()+NumBg()
                        +NumClk()+NumDcb()+NumIfb()+NumGloIfcb()
                        +NumTrp()+NumIon()+NumAmb();
@@ -803,18 +809,21 @@ namespace PPPLib{
 
     int cParSetting::NumAtt() {
         if(PPPLibC_.mode>MODE_INS) return 3;
+        else return 0;
     }
 
     int cParSetting::NumBa() {
         if(PPPLibC_.mode>MODE_INS) return 3;
+        else return 0;
     }
 
     int cParSetting::NumBg() {
         if(PPPLibC_.mode>MODE_INS) return 3;
+        else return 0;
     }
 
     int cParSetting::NumClk() {
-        if(PPPLibC_.mode==MODE_INS||PPPLibC_.mode==MODE_IGLC) return 0;
+        if(PPPLibC_.mode==MODE_INS||PPPLibC_.mode==MODE_IGLC||PPPLibC_.mode==MODE_PPK||PPPLibC_.mode_opt==MODE_OPT_PPK) return 0;
         return NSYS;
     }
 
@@ -837,7 +846,7 @@ namespace PPPLib{
 
     int cParSetting::NumGloIfcb() {
         if(PPPLibC_.mode==MODE_INS||PPPLibC_.mode==MODE_IGLC) return 0;
-
+        else return 0;
     }
 
     int cParSetting::NumTrp() {

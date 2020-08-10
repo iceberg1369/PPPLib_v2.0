@@ -19,6 +19,8 @@ namespace PPPLib{
         virtual ~cSolver();
 
     public:
+        void InitEpochSatInfo(vector<tSatInfoUnit>& sat_infos);
+        void UpdateSatInfo(vector<tSatInfoUnit>& sat_infos);
         void UpdateGnssObs(tPPPLibConf C,tEpochSatUnit& epoch_sat,RECEIVER_INDEX rec);
         virtual int GnssObsRes(int post,tPPPLibConf C,double* x);
 
@@ -110,8 +112,11 @@ namespace PPPLib{
         bool SolverProcess(tPPPLibConf C) override;
         bool SolverEpoch() override;
         bool Estimator(tPPPLibConf C) override;
+        bool SolutionUpdate() override;
 
     private:
+        void InitSppSolver();
+        void Spp2Ppp();
         void PppCycSlip(tPPPLibConf C);
         void PosUpdate(tPPPLibConf C);
         void ClkUpdate(tPPPLibConf C);
@@ -142,12 +147,16 @@ namespace PPPLib{
         bool SolutionUpdate() override;
 
     private:
-        bool GnssZeroRes(tPPPLibConf C,RECEIVER_INDEX rec,Vector3d rec_xyz,double* x);
+        void InitSppSolver();
+        void Spp2Ppk();
+        bool GnssZeroRes(tPPPLibConf C,RECEIVER_INDEX rec,vector<int>sat_idx,Vector3d rec_xyz,double* x);
+        int GnssDdRes(int post,tPPPLibConf C,vector<int>ir,vector<int>ib,vector<int>cmn_sat_no,double* x);
+        bool ValidObs(int i,int nf,int f);
         bool MatchBaseObs(cTime t);
         int SelectCmnSat(tPPPLibConf C,vector<int>& ir,vector<int>& iu,vector<int>& cmn_sat_no);
         void PpkCycleSlip(tPPPLibConf C,vector<int>& iu,vector<int>& ib,vector<int>& cmn_sat_no);
         void StateTimeUpdate(tPPPLibConf C,vector<int>& iu,vector<int>& ib,vector<int>& cmn_sat_no);
-        void PosUpdate(tPPPLibConf C,double tt);
+        void PosUpdate(tPPPLibConf C);
         void TrpUpdate(tPPPLibConf C,double tt);
         void IonUpdate(tPPPLibConf C,double tt);
         void AmbUpdate(tPPPLibConf C, double tt,vector<int>& ir,vector<int>& ib,vector<int>& cmn_sat_no);

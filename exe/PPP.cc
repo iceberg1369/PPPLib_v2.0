@@ -16,7 +16,7 @@ int main(int argc, char** argv){
 
     tPPPLibConf C;
 
-#if 1
+#if 0
     C.fileC.rover="../data/harb3350.19o";
     C.fileC.brd="../data/brdm3350.19p";
     C.fileC.cbias="../data/CAS0MGXRAP_20193350000_01D_01D_DCB.BSX";
@@ -46,10 +46,11 @@ int main(int argc, char** argv){
     C.gnssC.nav_sys=SYS_GPS;
     C.gnssC.frq_opt=FRQ_DUAL;
     C.gnssC.ion_opt=ION_IF;
+    C.gnssC.trp_opt=TRP_EST_WET;
     C.gnssC.eph_opt=EPH_PRE;
     C.gnssC.ele_min=10.0;
     C.gnssC.max_pdop=30.0;
-    C.gnssC.sample_rate=30.0;
+    C.gnssC.sample_rate=1.0;
     C.gnssC.cs_thres[0]=5.0;
     C.gnssC.cs_thres[1]=0.15;
     C.gnssC.gnss_frq[SYS_INDEX_GPS][0]=GPS_L1;C.gnssC.gnss_frq[SYS_INDEX_GPS][1]=GPS_L2;C.gnssC.gnss_frq[SYS_INDEX_GPS][2]=GPS_L5;

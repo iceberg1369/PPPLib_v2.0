@@ -27,7 +27,7 @@ int main(int argc, char** argv){
     C.fileC.ref="../data1/cpt00870.ref";
 #endif
 
-    C.mode=MODE_SPP;
+    C.mode=MODE_PPK;
     C.mode_opt=MODE_OPT_KINEMATIC;
     C.gnssC.nav_sys=SYS_GPS;
     C.gnssC.frq_opt=FRQ_DUAL;

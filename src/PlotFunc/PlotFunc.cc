@@ -82,6 +82,7 @@ namespace PPPLib {
 
     void cPlotSat::PlotMwAmb(tSatInfoUnit sat_info,int epoch) {
         static vector<double>mw,smw,t;
+        if(sat_info.raw_mw[0]==0.0||sat_info.sm_mw[0]==0.0) return;
         mw.push_back(sat_info.raw_mw[0]);
         smw.push_back(sat_info.sm_mw[0]);
         t.push_back(epoch);
@@ -90,8 +91,26 @@ namespace PPPLib {
             plt::figure(2);
             plt::ion();
             plt::clf();
-            plt::named_plot("mw", t, mw);
-            plt::named_plot("smw", t, smw);
+            plt::scatter(t, mw,1.0);
+            plt::scatter(t, smw,1.0);
+
+            plt::title("Position Error [m]");
+            plt::legend();
+            plt::pause(0.01);
+        }
+    }
+
+    void cPlotSat::PlotGfComb(tSatInfoUnit sat_info, int epoch) {
+        static vector<double>gf,t;
+        if(sat_info.gf[0]==0.0) return;
+        gf.push_back(sat_info.gf[0]);
+        t.push_back(epoch);
+
+        if(epoch%10==0){
+            plt::figure(2);
+            plt::ion();
+            plt::clf();
+            plt::scatter(t, gf,1.0);
 
             plt::title("Position Error [m]");
             plt::legend();

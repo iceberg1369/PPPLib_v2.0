@@ -184,9 +184,9 @@ namespace PPPLib{
         return obs_mw;
     }
 
-    double cGnssObsOperator::GnssObsGfComb(double obs1, double obs2) {
-        if(obs1==0.0||obs2==0.0) return 0.0;
-        return obs1-obs2;
+    double cGnssObsOperator::GnssObsGfComb(double obs1, double obs2,double lam1,double lam2) {
+        if(obs1==0.0||obs2==0.0||lam1==0.0||lam2==0.0) return 0.0;
+        return obs1*lam1-obs2*lam2;
     }
 
     double cGnssObsOperator::GnssObsCmcComb(double obs_P, double obs_L1, double obs_L2, double f1, double f2) {
@@ -241,7 +241,7 @@ namespace PPPLib{
         else if(type==COMB_GF){
             if(C.gnssC.frq_opt==FRQ_SINGLE) return;
             else if(C.gnssC.frq_opt==FRQ_DUAL){
-                sat_info->gf[0]=GnssObsGfComb(sat_info->cor_L[0],sat_info->cor_L[1]);
+                sat_info->gf[0]=GnssObsGfComb(sat_info->raw_L[0],sat_info->raw_L[1],sat_info->lam[0],sat_info->lam[1]);
             }
             else if(C.gnssC.frq_opt==FRQ_TRIPLE){
 
@@ -299,22 +299,36 @@ namespace PPPLib{
         }
 
         double el=sat_info->el_az[0]*R2D;
-        int num_loop=C.gnssC.frq_opt+1;
+        double P1,P2,L1,L2;
+        double lam1,lam2;
+        int num_loop=C.gnssC.frq_opt==FRQ_TRIPLE?2:1;
         for(int f=0;f<num_loop;f++){
             double w1=0.0,w0=0.0;
             if(sat_info->frq[f]==0.0) continue;
             double a=sat_info->t_tag.TimeDiff(last_time);
-            if(dt>sample_dt){
+            if(a>sample_dt){
                 sat_info->sm_mw[f]=sat_info->mw_idx[f]=0;
             }
             if(f==0){
-                w1=GnssObsMwComb(sat_info->raw_P[0],sat_info->raw_P[1],sat_info->raw_L[0],sat_info->raw_L[1],sat_info->lam[0],sat_info->lam[1]);
+                if(base_sat){
+                    P1=GnssSdObs(*sat_info,*base_sat,0,GNSS_OBS_CODE);
+                    P2=GnssSdObs(*sat_info,*base_sat,1,GNSS_OBS_CODE);
+                    L1=GnssSdObs(*sat_info,*base_sat,0,GNSS_OBS_PHASE);
+                    L2=GnssSdObs(*sat_info,*base_sat,1,GNSS_OBS_PHASE);
+                    lam1=sat_info->lam[0];lam2=sat_info->lam[1];
+                }
+                else{
+                    P1=sat_info->raw_P[0];P2=sat_info->raw_P[1];
+                    L1=sat_info->raw_L[0];L2=sat_info->raw_L[1];
+                    lam1=sat_info->lam[0];lam2=sat_info->lam[1];
+                }
+                w1=GnssObsMwComb(P1,P2,L1,L2,lam1,lam2);
                 w0=sat_info->sm_mw[0];
             }
             else if(f==1){
-                if(sat_info->cor_P[2]==0.0||sat_info->raw_L[2]==0.0) continue;
-                w1=GnssObsMwComb(sat_info->raw_P[0],sat_info->raw_P[2],sat_info->raw_L[0],sat_info->raw_L[2],sat_info->lam[0],sat_info->lam[2]);
-                w0=sat_info->sm_mw[1];
+//                if(sat_info->cor_P[2]==0.0||sat_info->raw_L[2]==0.0) continue;
+//                w1=GnssObsMwComb(sat_info->raw_P[0],sat_info->raw_P[2],sat_info->raw_L[0],sat_info->raw_L[2],sat_info->lam[0],sat_info->lam[2]);
+//                w0=sat_info->sm_mw[1];
             }
 
             if(w1==0.0||w0==0.0){
@@ -338,17 +352,31 @@ namespace PPPLib{
         del_ep=Round(fabs(dt/sample_dt));
 
         double el=sat_info->el_az[0]*R2D;
-        int num_loop=C.gnssC.frq_opt;
+        int num_loop=C.gnssC.frq_opt==FRQ_TRIPLE?2:1;
+        double L1,L2;
+        double lam1,lam2;
         for(int f=0;f<num_loop;f++){
             double g1=0.0,g0=0.0;
             if(f==0){
-                g1=GnssObsGfComb(sat_info->cor_L[0],sat_info->cor_L[1]);
+                if(base_sat){
+                    L1=GnssSdObs(*sat_info,*base_sat,0,GNSS_OBS_PHASE);
+                    L2=GnssSdObs(*sat_info,*base_sat,1,GNSS_OBS_PHASE);
+                    lam1=sat_info->lam[0];
+                    lam2=sat_info->lam[1];
+                }
+                else{
+                    L1=sat_info->raw_L[0];
+                    L2=sat_info->raw_L[1];
+                    lam1=sat_info->lam[0];
+                    lam2=sat_info->lam[1];
+                }
+                g1=GnssObsGfComb(L1,L2,lam1,lam2);
                 g0=sat_info->gf[0];
             }
             else if(f==1){
-                if(sat_info->cor_L[2]==0.0) continue;
-                g1=GnssObsGfComb(sat_info->cor_L[0],sat_info->cor_L[2]);
-                g0=sat_info->gf[1];
+//                if(sat_info->cor_L[2]==0.0) continue;
+//                g1=GnssObsGfComb(sat_info->raw_L[0],sat_info->raw_L[2],sat_info->lam[0],sat_info->lam[1]);
+//                g0=sat_info->gf[1];
             }
 
             if(g1==0.0||g0==0.0) continue;
@@ -372,20 +400,33 @@ namespace PPPLib{
 
         sat_info->raw_mw[0]=sat_info->raw_mw[1]=sat_info->gf[0]=sat_info->gf[1]=0.0;
 
-        int num_loop=C.gnssC.frq_opt;
+        int num_loop=C.gnssC.frq_opt==FRQ_TRIPLE?2:1;
+        double P1,P2,L1,L2,lam1,lam2;
         for(int f=0;f<num_loop;f++){
             double gf=0.0,mw=0.0,w0=0.0;
             if(f==0){
-                if((gf=GnssObsGfComb(sat_info->cor_L[0],sat_info->cor_L[1]))!=0.0) sat_info->gf[0]=gf;
-                if((mw=GnssObsMwComb(sat_info->cor_P[0],sat_info->cor_P[1],sat_info->raw_L[0],sat_info->raw_L[1],sat_info->lam[0],sat_info->lam[1]))==0.0) continue;
+                if(base_sat){
+                    P1=GnssSdObs(*sat_info,*base_sat,0,GNSS_OBS_CODE);
+                    P2=GnssSdObs(*sat_info,*base_sat,1,GNSS_OBS_CODE);
+                    L1=GnssSdObs(*sat_info,*base_sat,0,GNSS_OBS_PHASE);
+                    L2=GnssSdObs(*sat_info,*base_sat,1,GNSS_OBS_PHASE);
+                    lam1=sat_info->lam[0];lam2=sat_info->lam[1];
+                }
+                else{
+                    P1=sat_info->raw_P[0];P2=sat_info->raw_P[1];
+                    L1=sat_info->raw_L[0];L2=sat_info->raw_L[1];
+                    lam1=sat_info->lam[0];lam2=sat_info->lam[1];
+                }
+                if((gf=GnssObsGfComb(L1,L2,lam1,lam2))!=0.0) sat_info->gf[0]=gf;
+                if((mw=GnssObsMwComb(P1,P2,L1,L2,lam1,lam2))==0.0) continue;
                 w0=sat_info->sm_mw[0];
                 sat_info->raw_mw[0]=mw;
             }
             else if(f==1){
-                if((gf=GnssObsGfComb(sat_info->cor_L[0],sat_info->cor_L[2]))!=0.0) sat_info->gf[1]=gf;
-                if((mw=GnssObsMwComb(sat_info->raw_P[0],sat_info->raw_P[2],sat_info->raw_L[0],sat_info->raw_L[2],sat_info->lam[0],sat_info->lam[2]))==0.0) continue;
-                w0=sat_info->sm_mw[1];
-                sat_info->raw_mw[1]=mw;
+//                if((gf=GnssObsGfComb(sat_info->raw_L[0],sat_info->raw_L[2],sat_info->lam[0],sat_info->lam[1]))!=0.0) sat_info->gf[1]=gf;
+//                if((mw=GnssObsMwComb(sat_info->raw_P[0],sat_info->raw_P[2],sat_info->raw_L[0],sat_info->raw_L[2],sat_info->lam[0],sat_info->lam[2]))==0.0) continue;
+//                w0=sat_info->sm_mw[1];
+//                sat_info->raw_mw[1]=mw;
             }
 
             if(sat_info->mw_idx[f]>0){

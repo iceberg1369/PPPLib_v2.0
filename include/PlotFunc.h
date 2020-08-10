@@ -44,6 +44,7 @@ namespace PPPLib {
         void PlotEpochSatNum();
         void PlotSatMeas(GNSS_OBS type,int epoch,tSatInfoUnit sat_info);
         void PlotMwAmb(tSatInfoUnit sat_info,int epoch);
+        void PlotGfComb(tSatInfoUnit sat_info,int epoch);
     };
 
     class cPlotSol:public cPlot{
