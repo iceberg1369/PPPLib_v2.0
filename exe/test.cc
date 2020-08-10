@@ -12,6 +12,46 @@ INITIALIZE_EASYLOGGINGPP
 namespace plt=matplotlibcpp;
 using namespace PPPLib;
 
+void test_mad(){
+    vector<double> seri;
+    seri.push_back(0.2983);
+    seri.push_back(-0.1154);
+    seri.push_back(-0.0959);
+    seri.push_back(-0.2176);
+    seri.push_back(-0.0405);
+    seri.push_back(-0.1376);
+    seri.push_back(0.0223);
+    seri.push_back(0.2254);
+//    seri.push_back(-5655058.8595);
+//    seri.push_back(-3505750.7194);
+//    seri.push_back(-6175516.7572);
+//    seri.push_back(-4550479.1701);
+
+    double total=0.0;
+    for(int i=0;i<seri.size();i++){
+        total+=seri[i];
+    }
+    double med_ori=total/seri.size();
+
+    vector<double>seri1;
+    for(int i=0;i<seri.size();i++){
+        seri1.push_back(fabs(seri[i]-med_ori));
+    }
+
+    total=0;
+    for(int i=0;i<seri1.size();i++){
+        total+=seri1[i];
+    }
+    double med1=0.3*total/seri1.size();
+
+    for(int i=0;i<seri.size();i++){
+        if(seri[i]<(med_ori-3*med1)||seri[i]>(med_ori+3*med1)){
+            cout<<seri[i]<<endl;
+        }
+    }
+
+}
+
 int test_read_ref() {
 //    string ref_file="../data/cpt00870.ref";
 //    cReadRefSol ref_reader(ref_file);
@@ -130,9 +170,9 @@ int test_read_imu(){
     double ee[6]={2019,3,28,3,35,00};
     cTime ts(es),te(ee);
 
-    imu_reader.SetImuTimeSpan(&ts,&te);
-    imu_reader.SetImuType(IMU_NOVTEL_CPT);
-    imu_reader.SetImuCoordType(IMU_COORD_ENU);
+//    imu_reader.SetImuTimeSpan(&ts,&te);
+//    imu_reader.SetImuType(IMU_NOVTEL_CPT);
+//    imu_reader.SetImuCoordType(IMU_COORD_ENU);
 
     imu_reader.Reading();
 
@@ -156,6 +196,7 @@ int main(int argc, char** argv){
 //      test_read_ocean();
 //      test_read_antex();
 //      test_read_ionex();
-      test_read_ref();
+//      test_read_ref();
 //    test_plot_sat_view();
+    test_mad();
 }

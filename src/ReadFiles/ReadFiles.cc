@@ -59,6 +59,8 @@ namespace PPPLib{
         char *token;
         int i,gps_week;
         tImuDataUnit imu_data={0};
+        Matrix3d Crf;
+        Crf<<0,1,0,1,0,0,0,0,-1;
 
         while(getline(inf_,line_str_)&&!inf_.eof()){
             token=strtok((char *)line_str_.c_str(),seps);
@@ -66,31 +68,34 @@ namespace PPPLib{
                 for(i=0;i<3;i++) token=strtok(NULL,seps);
                 gps_week=atoi(token);
                 token=strtok(NULL,seps);
-                imu_data.t_tag_.Gpst2Time(gps_week, atof(token),SYS_GPS);
+                imu_data.t_tag.Gpst2Time(gps_week, atof(token),SYS_GPS);
 
                 if(imu_data_.ts_.t_.long_time!=0.0){
-                    if(imu_data.t_tag_.TimeDiff(imu_data_.ts_.t_)<0) continue;
+                    if(imu_data.t_tag.TimeDiff(imu_data_.ts_.t_)<0) continue;
                 }
                 if(imu_data_.te_.t_.long_time!=0.0){
-                    if(imu_data.t_tag_.TimeDiff(imu_data_.te_.t_)>0) continue;
+                    if(imu_data.t_tag.TimeDiff(imu_data_.te_.t_)>0) continue;
                 }
 
                 for(i=0;i<2;i++) token=strtok(NULL,seps);
-                imu_data.acce_[2]=atof(token)*a_scale;
+                imu_data.acce[2]=atof(token)*a_scale;
                 token=strtok(NULL,seps);
-                imu_data.acce_[1]=-atof(token)*a_scale;
+                imu_data.acce[1]=-atof(token)*a_scale;
                 token=strtok(NULL,seps);
-                imu_data.acce_[0]=atof(token)*a_scale;
+                imu_data.acce[0]=atof(token)*a_scale;
 
                 token=strtok(NULL,seps);
-                imu_data.gyro_[2]=atof(token)*g_scale;
+                imu_data.gyro[2]=atof(token)*g_scale;
                 token=strtok(NULL,seps);
-                imu_data.gyro_[1]=atof(token)*g_scale;
+                imu_data.gyro[1]=atof(token)*g_scale;
                 token=strtok(NULL,seps);
-                imu_data.gyro_[0]=atof(token)*g_scale;
+                imu_data.gyro[0]=atof(token)*g_scale;
 
-                imu_data.t_tag_.GetTimeStr(3);
-//                LOG(INFO)<<imu_data.t_tag_.GetTimeStr(3);
+                if(imu_data_.imu_coord_type_==IMU_COORD_RFU){;
+                    imu_data.gyro=Crf*imu_data.gyro;
+                    imu_data.acce=Crf*imu_data.acce;
+                }
+
                 imu_data_.data_.push_back(imu_data);
             }
         }
@@ -100,6 +105,14 @@ namespace PPPLib{
 
     cImuData* cReadImu::GetImus() {return &imu_data_;}
 
+    bool cReadImu::SetImu(IMU_TYPE imu_type, IMU_COORD_TYPE coord_type, IMU_DATA_FORMAT data_format) {
+        if(imu_type==IMU_UNKNOW){
+            LOG(ERROR)<<"Unknow imu type";
+            return false;
+        }
+        imu_data_.SetImu(imu_type,coord_type,data_format);
+    }
+
     void cReadImu::SetImuTimeSpan(PPPLib::cTime *ts, PPPLib::cTime *te) {
         if(ts->TimeDiff(te->t_)>=0){
             LOG(WARNING)<<"Wrong time interval setting";
@@ -108,18 +121,6 @@ namespace PPPLib{
         else{
             imu_data_.SetTimeSpan(ts,te);
         }
-    }
-
-    bool cReadImu::SetImuType(PPPLib::IMU_TYPE type) {
-        if(type==IMU_UNKNOW){
-            LOG(ERROR)<<"Unknow imu type";
-            return false;
-        }
-        imu_data_.SetImuType(type);
-    }
-
-    void cReadImu::SetImuCoordType(PPPLib::IMU_COORD_TYPE type) {
-        imu_data_.SetImuCoordType(type);
     }
 
     bool cReadImu::Reading() {
@@ -141,8 +142,8 @@ namespace PPPLib{
 
         for(int i=0;i<imu_data_.data_.size();i++){
             imu_data=imu_data_.data_[i];
-            fout<<imu_data.t_tag_.GetTimeStr(3)<<sep<<imu_data.acce_[0]<<sep<<imu_data.acce_[1]<<sep<<imu_data.acce_[2];
-            fout<<sep<<imu_data.gyro_[0]<<sep<<imu_data.gyro_[1]<<sep<<imu_data.gyro_[2]<<endl;
+            fout<<imu_data.t_tag.GetTimeStr(3)<<sep<<imu_data.acce[0]<<sep<<imu_data.acce[1]<<sep<<imu_data.acce[2];
+            fout<<sep<<imu_data.gyro[0]<<sep<<imu_data.gyro[1]<<sep<<imu_data.gyro[2]<<endl;
         }
     }
 

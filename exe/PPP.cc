@@ -11,28 +11,47 @@ using namespace PPPLib;
 
 int main(int argc, char** argv){
     string logini_path = SetLogConfPath("");
-    int log_level = SetLogLevel(1);
+    int log_level = SetLogLevel(32);
     InitLog(argc,argv,logini_path, log_level);
 
     tPPPLibConf C;
 
-#if 0
+#if 1
     C.fileC.rover="../data/harb3350.19o";
     C.fileC.brd="../data/brdm3350.19p";
     C.fileC.cbias="../data/CAS0MGXRAP_20193350000_01D_01D_DCB.BSX";
+    C.fileC.sp3[1]="../data/wum20820.sp3";
+    C.fileC.sp3[2]="../data/wum20821.sp3";
+    C.fileC.clk="../data/wum20820.clk";
+    C.fileC.atx="../data/igs14_2097.atx";
+    C.fileC.blq="../data/ocnload.blq";
+    C.fileC.erp="../data/igs19P2082.erp";
 #else
     C.fileC.rover="../data1/cpt00870.19o";
     C.fileC.brd="../data1/brdm0870.19p";
     C.fileC.cbias="../data1/CAS0MGXRAP_20190870000_01D_01D_DCB.BSX";
     C.fileC.ref="../data1/cpt00870.ref";
+    C.fileC.sp3[0]="../data1/wum20453.sp3";
+    C.fileC.sp3[1]="../data1/wum20454.sp3";
+    C.fileC.sp3[2]="../data1/wum20455.sp3";
+    C.fileC.clk="../data1/wum20454.clk";
+    C.fileC.atx="../data1/igs14_2097.atx";
+    C.fileC.blq="../data1/ocnload.blq";
 #endif
 
+
     C.mode=MODE_PPP;
-    C.mode_opt=MODE_OPT_KINEMATIC;
+    C.mode_opt=MODE_OPT_KINE_SIM;
+    C.dynamic=false;
     C.gnssC.nav_sys=SYS_GPS;
     C.gnssC.frq_opt=FRQ_DUAL;
     C.gnssC.ion_opt=ION_IF;
+    C.gnssC.eph_opt=EPH_PRE;
     C.gnssC.ele_min=10.0;
+    C.gnssC.max_pdop=30.0;
+    C.gnssC.sample_rate=30.0;
+    C.gnssC.cs_thres[0]=5.0;
+    C.gnssC.cs_thres[1]=0.15;
     C.gnssC.gnss_frq[SYS_INDEX_GPS][0]=GPS_L1;C.gnssC.gnss_frq[SYS_INDEX_GPS][1]=GPS_L2;C.gnssC.gnss_frq[SYS_INDEX_GPS][2]=GPS_L5;
     C.gnssC.gnss_frq[SYS_INDEX_BDS][0]=BDS_B1I;C.gnssC.gnss_frq[SYS_INDEX_BDS][1]=BDS_B2I;C.gnssC.gnss_frq[SYS_INDEX_BDS][2]=BDS_B3I;
     C.gnssC.gnss_frq[SYS_INDEX_GAL][0]=GAL_E1;C.gnssC.gnss_frq[SYS_INDEX_GAL][1]=GAL_E5a;C.gnssC.gnss_frq[SYS_INDEX_GAL][2]=GAL_E5b;

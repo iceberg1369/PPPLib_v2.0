@@ -41,8 +41,7 @@ namespace PPPLib {
     public:
         cImuData* GetImus();
         void SetImuTimeSpan(cTime *ts, cTime *te);
-        bool SetImuType(IMU_TYPE type);
-        void SetImuCoordType(IMU_COORD_TYPE type);
+        bool SetImu(IMU_TYPE imu_type,IMU_COORD_TYPE coord_type,IMU_DATA_FORMAT data_format);
         bool Reading() override;
         void OutImu(string out_path);
 

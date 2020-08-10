@@ -21,9 +21,9 @@ namespace PPPLib {
     Eigen::Vector3d CalculateGravity(const Vector3d coord_blh,bool is_ecef);
 
     typedef struct {
-        cTime t_tag_;
-        Vector3d gyro_;
-        Vector3d acce_;
+        cTime t_tag;
+        Vector3d gyro;
+        Vector3d acce;
     }tImuDataUnit;
 
     class cImuData{
@@ -33,6 +33,7 @@ namespace PPPLib {
         ~cImuData();
 
     public:
+        void SetImu(IMU_TYPE imu_type,IMU_COORD_TYPE coord_type,IMU_DATA_FORMAT data_format);
         void SetImuType(IMU_TYPE type);
         void SetImuCoordType(IMU_COORD_TYPE type);
         void SetTimeSpan(cTime* ts, cTime* te);
@@ -41,8 +42,24 @@ namespace PPPLib {
         cTime ts_,te_;
         IMU_TYPE imu_type_;
         IMU_COORD_TYPE imu_coord_type_;
+        IMU_DATA_FORMAT data_format_;
         vector<tImuDataUnit> data_;
     };
+
+    typedef struct{
+        cTime t_tag;
+        Vector3d raw_gyro,raw_acce;
+        Vector3d cor_gyro,cor_acce;
+
+        Vector3d re,ve,ae;
+        Vector3d rn,vn,an;
+        Matrix3d Cbe,Cbn;
+
+        Vector3d ba,bg;
+
+        double dt;
+
+    }tImuInfoUnit;
 
     class cInsMech{
     public:
@@ -50,12 +67,13 @@ namespace PPPLib {
         ~cInsMech();
 
     public:
-        tSolInfoUnit InsMechanization(tImuDataUnit& pre_imu_data,tImuDataUnit& cur_imu_data,const tSolInfoUnit& sol_info);
+        tImuInfoUnit InsMechanization(tPPPLibConf C,tImuInfoUnit& pre_imu_info,tImuInfoUnit& cur_imu_info);
+        Eigen::MatrixXd StateTransferMat(tPPPLibConf C,tImuInfoUnit& pre_imu_info,tImuInfoUnit& cur_imu_info,int nx);
 
     private:
-        Eigen::Quaterniond AttitudeUpdate(tImuDataUnit& pre_imu_data,tImuDataUnit& cur_imu_data,const tSolInfoUnit& pre_sol_info);
-        Eigen::Vector3d VelocityUpdate(tImuDataUnit& pre_imu_data,tImuDataUnit& cur_imu_data,const tSolInfoUnit& pre_sol_info);
-        Eigen::Vector3d PositionUpdate(const tSolInfoUnit& pre_sol_info,const Vector3d& cur_vel,double dt);
+        Eigen::Quaterniond AttitudeUpdate(tImuInfoUnit& pre_imu_info,tImuInfoUnit& cur_imu_info);
+        Eigen::Vector3d VelocityUpdate(tImuInfoUnit& pre_imu_info,tImuInfoUnit& cur_imu_info);
+        Eigen::Vector3d PositionUpdate(const tImuInfoUnit& pre_imu_info,const Vector3d& cur_vel,double dt);
     };
 
 

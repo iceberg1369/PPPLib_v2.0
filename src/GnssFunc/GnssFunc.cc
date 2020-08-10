@@ -160,17 +160,6 @@ namespace PPPLib{
     cGnssObsOperator::~cGnssObsOperator() {}
 
     void cGnssObsOperator::ReAlignObs(tPPPLibConf C, tSatInfoUnit &sat_info, tSatObsUnit sat_obs, int f, int frq_idx) {
-        double P=sat_obs.P[frq_idx],L=sat_obs.L[frq_idx];
-
-        if(f==0){
-            if(P==0.0||L==0.0) sat_info.stat=SAT_NO_USE;
-        }
-
-        if(C.gnssC.ion_opt==ION_IF){
-            if(f==3&&C.gnssC.ion_opt==ION_IF2) return;
-            if(P==0.0||L==0.0) sat_info.stat=SAT_NO_USE;
-        }
-
         sat_info.P_code[f]=sat_obs.code[frq_idx];
         sat_info.raw_P[f]=C.gnssC.csc?sat_obs.CSC_P[frq_idx]:sat_obs.P[frq_idx];
         sat_info.raw_L[f]=sat_obs.L[frq_idx];
@@ -190,11 +179,13 @@ namespace PPPLib{
 
     double cGnssObsOperator::GnssObsMwComb(double obs_P1, double obs_P2,double obs_L1,double obs_L2, double lam1, double lam2) {
         double obs_mw=0.0;
+        if(obs_P1==0.0||obs_P2==0.0||obs_L1==0.0||obs_L2==0.0) return 0.0;
         obs_mw=(obs_L1-obs_L2)-(lam2-lam1)/(lam1+lam2)*(obs_P1/lam1+obs_P2/lam2);
         return obs_mw;
     }
 
     double cGnssObsOperator::GnssObsGfComb(double obs1, double obs2) {
+        if(obs1==0.0||obs2==0.0) return 0.0;
         return obs1-obs2;
     }
 
@@ -278,7 +269,20 @@ namespace PPPLib{
         }
     }
 
-    void cGnssObsOperator::MwCycleSlip(tPPPLibConf C,double sample_dt,double dt,tSatInfoUnit* sat_info,tTime last_time) {
+    double cGnssObsOperator::GnssSdObs(const tSatInfoUnit &sat1, const tSatInfoUnit &sat2, int f, GNSS_OBS type) {
+        double obs1=0.0,obs2=0.0;
+        if(type==GNSS_OBS_CODE){
+            obs1=sat1.raw_P[f];
+            obs2=sat2.raw_P[f];
+        }
+        else if(type==GNSS_OBS_PHASE){
+            obs1=sat1.raw_L[f];
+            obs2=sat2.raw_L[f];
+        }
+        return obs1==0.0||obs2==0.0?0.0:obs1-obs2;
+    }
+
+    void cGnssObsOperator::MwCycleSlip(tPPPLibConf C,double sample_dt,double dt,tSatInfoUnit* sat_info,tSatInfoUnit* base_sat,tTime last_time) {
         int del_ep=1;
         double fact=1.0;
         if(sample_dt>0.0) del_ep=Round(dt/sample_dt);
@@ -295,20 +299,21 @@ namespace PPPLib{
         }
 
         double el=sat_info->el_az[0]*R2D;
-        int num_loop=C.gnssC.frq_opt;
+        int num_loop=C.gnssC.frq_opt+1;
         for(int f=0;f<num_loop;f++){
             double w1=0.0,w0=0.0;
             if(sat_info->frq[f]==0.0) continue;
-            if(sat_info->t_tag.TimeDiff(last_time)>sample_dt){
+            double a=sat_info->t_tag.TimeDiff(last_time);
+            if(dt>sample_dt){
                 sat_info->sm_mw[f]=sat_info->mw_idx[f]=0;
             }
             if(f==0){
-                w1=GnssObsMwComb(sat_info->cor_P[0],sat_info->cor_P[1],sat_info->raw_L[0],sat_info->raw_L[1],sat_info->lam[0],sat_info->lam[1]);
+                w1=GnssObsMwComb(sat_info->raw_P[0],sat_info->raw_P[1],sat_info->raw_L[0],sat_info->raw_L[1],sat_info->lam[0],sat_info->lam[1]);
                 w0=sat_info->sm_mw[0];
             }
             else if(f==1){
                 if(sat_info->cor_P[2]==0.0||sat_info->raw_L[2]==0.0) continue;
-                w1=GnssObsMwComb(sat_info->cor_P[0],sat_info->cor_P[2],sat_info->raw_L[0],sat_info->raw_L[2],sat_info->lam[0],sat_info->lam[2]);
+                w1=GnssObsMwComb(sat_info->raw_P[0],sat_info->raw_P[2],sat_info->raw_L[0],sat_info->raw_L[2],sat_info->lam[0],sat_info->lam[2]);
                 w0=sat_info->sm_mw[1];
             }
 
@@ -322,14 +327,13 @@ namespace PPPLib{
             else thres=-C.gnssC.cs_thres[0]*0.1*el+3.0*C.gnssC.cs_thres[0];
             double dmw=w1-w0;
             if(fabs(dmw)>MIN(thres*fact,6.0)){
+                LOG(WARNING)<<sat_info->t_tag.GetTimeStr(1)<<" "<<sat_info->sat.sat_.id<<" "<<"MW DETECT CYCLE SLIP dmw=mw1-mw0 "<<dmw<<"="<<w1<<"-"<<w0<<" THRESHOLD="<<MIN(thres*fact,6.0);
                 sat_info->stat=SAT_SLIP;
             }
-
         }
-
     }
 
-    void cGnssObsOperator::GfCycleSlip(tPPPLibConf C,double sample_dt,double dt, tSatInfoUnit *sat_info) {
+    void cGnssObsOperator::GfCycleSlip(tPPPLibConf C,double sample_dt,double dt, tSatInfoUnit *sat_info, tSatInfoUnit* base_sat) {
         int del_ep;
         del_ep=Round(fabs(dt/sample_dt));
 
@@ -354,12 +358,17 @@ namespace PPPLib{
 
             double dgf=g1-g0;
             if(fabs(dgf)>MIN(thres*del_ep,1.5)){
+                LOG(WARNING)<<sat_info->t_tag.GetTimeStr(1)<<" "<<sat_info->sat.sat_.id<<" "<<"GF DETECT CYCLE SLIP dgf=gf1-gf0 "<<dgf<<"="<<g1<<"-"<<g0<<" THRESHOLD="<<MIN(thres*del_ep,1.5);
                 sat_info->stat=SAT_SLIP;
             }
         }
     }
 
-    void cGnssObsOperator::SmoothMw(tPPPLibConf C,PPPLib::tSatInfoUnit *sat_info) {
+    void cGnssObsOperator::LliCycleSlip() {
+
+    }
+
+    void cGnssObsOperator::SmoothMw(tPPPLibConf C,PPPLib::tSatInfoUnit *sat_info,tSatInfoUnit *base_sat) {
 
         sat_info->raw_mw[0]=sat_info->raw_mw[1]=sat_info->gf[0]=sat_info->gf[1]=0.0;
 
@@ -368,13 +377,13 @@ namespace PPPLib{
             double gf=0.0,mw=0.0,w0=0.0;
             if(f==0){
                 if((gf=GnssObsGfComb(sat_info->cor_L[0],sat_info->cor_L[1]))!=0.0) sat_info->gf[0]=gf;
-                if((mw=GnssObsMwComb(sat_info->cor_P[0],sat_info->cor_P[1],sat_info->cor_L[0],sat_info->cor_L[1],sat_info->lam[0],sat_info->lam[1]))==0.0) continue;
-                double w0=sat_info->sm_mw[0];
+                if((mw=GnssObsMwComb(sat_info->cor_P[0],sat_info->cor_P[1],sat_info->raw_L[0],sat_info->raw_L[1],sat_info->lam[0],sat_info->lam[1]))==0.0) continue;
+                w0=sat_info->sm_mw[0];
                 sat_info->raw_mw[0]=mw;
             }
             else if(f==1){
                 if((gf=GnssObsGfComb(sat_info->cor_L[0],sat_info->cor_L[2]))!=0.0) sat_info->gf[1]=gf;
-                if((mw=GnssObsMwComb(sat_info->cor_P[0],sat_info->cor_P[2],sat_info->cor_L[0],sat_info->cor_L[2],sat_info->lam[0],sat_info->lam[2]))==0.0) continue;
+                if((mw=GnssObsMwComb(sat_info->raw_P[0],sat_info->raw_P[2],sat_info->raw_L[0],sat_info->raw_L[2],sat_info->lam[0],sat_info->lam[2]))==0.0) continue;
                 w0=sat_info->sm_mw[1];
                 sat_info->raw_mw[1]=mw;
             }
@@ -394,9 +403,7 @@ namespace PPPLib{
                 sat_info->mw_idx[f]++;
                 sat_info->var_mw[f]=0.25;
             }
-
         }
-
     }
 
     double GeoDist(Vector3d sat_pos,Vector3d rec_pos,Vector3d& sig_vec){
@@ -450,6 +457,7 @@ namespace PPPLib{
         double var=0.0;
         double a=0.003,b=0.003;
         double sin_el=sin(sat_info.el_az[0]);
+        if(obs_type==GNSS_OBS_DOPPLER) a=b=10;
         var=SQR(a)+SQR(b/sin_el);
 #endif
 

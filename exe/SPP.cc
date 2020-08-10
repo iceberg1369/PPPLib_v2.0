@@ -12,12 +12,12 @@ using namespace PPPLib;
 
 int main(int argc, char** argv){
     string logini_path = SetLogConfPath("");
-    int log_level = SetLogLevel(1);
+    int log_level = SetLogLevel(32);
     InitLog(argc,argv,logini_path, log_level);
     tPPPLibConf C;
 
-#if 0
-    C.fileC.rover="../data/harb3350.19o";
+#if 1
+    C.fileC.rover="../data/faa13350.19o";
     C.fileC.brd="../data/brdm3350.19p";
     C.fileC.cbias="../data/CAS0MGXRAP_20193350000_01D_01D_DCB.BSX";
 #else
@@ -28,11 +28,13 @@ int main(int argc, char** argv){
 #endif
 
     C.mode=MODE_SPP;
-    C.mode_opt=MODE_OPT_KINEMATIC;
-    C.gnssC.nav_sys=SYS_GPS|SYS_BDS;
+    C.mode_opt=MODE_OPT_KINE_SIM;
+    C.gnssC.nav_sys=SYS_GPS;
     C.gnssC.frq_opt=FRQ_SINGLE;
     C.gnssC.ion_opt=ION_KLB;
     C.gnssC.ele_min=10.0;
+    C.gnssC.use_doppler= true;
+    C.gnssC.max_pdop=30.0;
     C.gnssC.gnss_frq[SYS_INDEX_GPS][0]=GPS_L1;C.gnssC.gnss_frq[SYS_INDEX_GPS][1]=GPS_L2;C.gnssC.gnss_frq[SYS_INDEX_GPS][2]=GPS_L5;
     C.gnssC.gnss_frq[SYS_INDEX_BDS][0]=BDS_B1I;C.gnssC.gnss_frq[SYS_INDEX_BDS][1]=BDS_B2I;C.gnssC.gnss_frq[SYS_INDEX_BDS][2]=BDS_B3I;
     C.gnssC.gnss_frq[SYS_INDEX_GAL][0]=GAL_E1;C.gnssC.gnss_frq[SYS_INDEX_GAL][1]=GAL_E5a;C.gnssC.gnss_frq[SYS_INDEX_GAL][2]=GAL_E5b;
@@ -74,7 +76,8 @@ int main(int argc, char** argv){
     }
     else if(C.mode_opt==MODE_OPT_KINE_SIM){
         tSolInfoUnit ref;
-        ref.pos<<5.08465761725042e+06,2.67032540511120e+06,-2.76848090433746e+06;
+//        ref.pos<<5.08465761725042e+06,2.67032540511120e+06,-2.76848090433746e+06;
+        ref.pos<<-5.24739363972353e+06,-3.07686641833132e+06,-1.91152102536219e+06;
         ref.vel<<0,0,0;
         solver->ref_sols_.push_back(ref);
     }

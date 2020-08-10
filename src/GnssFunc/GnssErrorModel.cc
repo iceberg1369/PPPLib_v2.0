@@ -37,6 +37,14 @@ namespace PPPLib{
         return zenith_trp_;
     }
 
+    Vector2d cTrpDelayModel::GetTrpError(double humi,double* x,int it) {
+        if(PPPLibC_.gnssC.trp_opt==TRP_SAAS) GetSaasTrp(humi, nullptr,nullptr);
+        else if(PPPLibC_.gnssC.trp_opt>TRP_EST_WET){
+            EstTrpWet(humi,x,it);
+        }
+        return zenith_trp_;
+    }
+
     void cTrpDelayModel::UpdateSatInfo() {
         sat_info_->trp_dry_delay=slant_trp_dry_;
         sat_info_->trp_wet_delay=slant_trp_wet_;
@@ -70,6 +78,66 @@ namespace PPPLib{
         sat_info_->trp_var=SQR(0.3);
     }
 
+    Vector4d cTrpDelayModel::EstTrpWet(double humi,double *x,int it) {
+        GetSaasTrp(humi, nullptr, nullptr);
+        TrpMapNeil(sat_info_->t_tag,sat_info_->el_az[0]);
+        if(PPPLibC_.gnssC.trp_opt==TRP_EST_GRAD&&sat_info_->el_az[0]>0){
+            double cotz=1.0/tan(sat_info_->el_az[0]);
+            double grad_n=slant_trp_wet_[1]*cotz*cos(sat_info_->el_az[1]);
+            double grad_e=slant_trp_wet_[1]*cotz*sin(sat_info_->el_az[1]);
+            slant_trp_wet_[1]+=grad_n*x[it+1]+grad_e*x[it+2];
+            slant_trp_wet_[2]=grad_n*x[it+1];
+            slant_trp_wet_[3]=grad_e*x[it+2];
+        }
+        slant_trp_wet_[0]=slant_trp_wet_[1]*x[it];
+        sat_info_->trp_var=0.001;
+    }
+
+    static double Interpc(const double coef[],double lat) {
+        int i=(int)(lat/15.0);
+
+        if(i<1) return coef[0];else if(i>4) return coef[4];
+        return coef[i-1]*(1.0-lat/15.0+i)+coef[i]*(lat/15.0-i);
+    }
+
+    static double Mapf(double el,double a,double b,double c) {
+        double sinel=sin(el);
+        return (1.0+a/(1.0+b/(1.0+c)))/(sinel+(a/(sinel+b/(sinel+c))));
+    }
+
+    void cTrpDelayModel::TrpMapNeil(cTime t, double el) {
+        const double coef[][5]={
+                { 1.2769934E-3, 1.2683230E-3, 1.2465397E-3, 1.2196049E-3, 1.2045996E-3},
+                { 2.9153695E-3, 2.9152299E-3, 2.9288445E-3, 2.9022565E-3, 2.9024912E-3},
+                { 62.610505E-3, 62.837393E-3, 63.721774E-3, 63.824265E-3, 64.258455E-3},
+
+                { 0.0000000E-0, 1.2709626E-5, 2.6523662E-5, 3.4000452E-5, 4.1202191E-5},
+                { 0.0000000E-0, 2.1414979E-5, 3.0160779E-5, 7.2562722E-5, 11.723375E-5},
+                { 0.0000000E-0, 9.0128400E-5, 4.3497037E-5, 84.795348E-5, 170.37206E-5},
+
+                { 5.8021897E-4, 5.6794847E-4, 5.8118019E-4, 5.9727542E-4, 6.1641693E-4},
+                { 1.4275268E-3, 1.5138625E-3, 1.4572752E-3, 1.5007428E-3, 1.7599082E-3},
+                { 4.3472961E-2, 4.6729510E-2, 4.3908931E-2, 4.4626982E-2, 5.4736038E-2}
+        };
+        const double aht[]={ 2.53E-5, 5.49E-3, 1.14E-3}; /* height correction */
+
+        double y,cosy,ah[3],aw[3],dm,lat=blh_[0]*R2D,hgt=blh_[3];
+        int i;
+
+        if(el<=0.0) {return;}
+        y=(t.Time2Doy()-28.0)/365.25+(lat<0.0?0.5:0.0);
+        cosy=cos(2.0*PI*y);
+        lat=fabs(lat);
+
+        for(i=0;i<3;i++){
+            ah[i]=Interpc(coef[i],lat)-Interpc(coef[i+3],lat)*cosy;
+            aw[i]=Interpc(coef[i+6],lat);
+        }
+        dm=(1.0/sin(el)-Mapf(el,aht[0],aht[1],aht[2]))*hgt/1E3;
+        slant_trp_wet_[1]=Mapf(el,aw[0],aw[1],aw[2]);
+        slant_trp_dry_[1]=Mapf(el,ah[0],ah[1],ah[2])+dm;
+    }
+
     cIonDelayModel::cIonDelayModel() {}
 
     cIonDelayModel::cIonDelayModel(Vector3d blh, tSatInfoUnit &sat_info, tNav nav) {
@@ -78,6 +146,15 @@ namespace PPPLib{
     }
 
     cIonDelayModel::~cIonDelayModel() {}
+
+    Vector2d cIonDelayModel::GetIonError() {
+        if(PPPLibC_.gnssC.ion_opt==ION_IF) IonFreeModel();
+        else if(PPPLibC_.gnssC.ion_opt==ION_KLB) KlobModel();
+        else if(PPPLibC_.gnssC.ion_opt>ION_EST){
+
+        }
+        return ion_delay_;
+    }
 
     Vector2d cIonDelayModel::GetKlobIon() {
         KlobModel();
@@ -152,7 +229,7 @@ namespace PPPLib{
     }
 
     bool cIonDelayModel::IonFreeModel() {
-        ion_delay_[1]=0.0;
+        ion_delay_[0]=ion_delay_[1]=0.0;
     }
 
     cCbiasModel::cCbiasModel() {}
@@ -186,25 +263,24 @@ namespace PPPLib{
         int *frqs=PPPLibC_.gnssC.gnss_frq[sys_idx];
         double *bias=cbias_[sys_idx];
 
-        for(int i=0;i<MAX_GNSS_FRQ_NUM;i++){
+        for(int i=0;i<MAX_GNSS_USED_FRQ_NUM;i++){
             sat_info_->code_bias[i]=0.0;
         }
 
         if(sys==SYS_BDS&&sat_info_->sat.sat_.prn>18){
             frqs=PPPLibC_.gnssC.gnss_frq[NSYS];
             bias=cbias_[NSYS];
-
         }
 
-        sat_info_->code_bias[0]=bias[frqs[0]];
+        sat_info_->code_bias[0]=bias[0];
         if(PPPLibC_.gnssC.frq_opt==FRQ_DUAL){
-            sat_info_->code_bias[0]=bias[frqs[0]];
-            sat_info_->code_bias[1]=bias[frqs[1]];
+            sat_info_->code_bias[0]=bias[0];
+            sat_info_->code_bias[1]=bias[1];
         }
         else if(PPPLibC_.gnssC.frq_opt==FRQ_TRIPLE){
-            sat_info_->code_bias[0]=bias[frqs[0]];
-            sat_info_->code_bias[1]=bias[frqs[1]];
-            sat_info_->code_bias[2]=bias[frqs[2]];
+            sat_info_->code_bias[0]=bias[0];
+            sat_info_->code_bias[1]=bias[1];
+            sat_info_->code_bias[2]=bias[2];
         }
     }
 
@@ -266,7 +342,7 @@ namespace PPPLib{
             double alpha=SQR(FREQ_GPS_L1)/a;
             double beta=-SQR(FREQ_GPS_L2)/a;
 
-            for(int i=0;i<MAX_GNSS_FRQ_NUM;i++){
+            for(int i=0;i<MAX_GNSS_USED_FRQ_NUM;i++){
                 if(sat_info_->P_code[i]==GNSS_CODE_NONE){
                     cbias_[SYS_INDEX_GPS][i]=0.0;
                     continue;
@@ -292,43 +368,44 @@ namespace PPPLib{
             }
         }
         else if(sys==SYS_BDS){
+
             if(PPPLibC_.gnssC.eph_opt==EPH_BRD){
                 // base on b3
                 if(sat_info_->sat.sat_.prn>18){
                     //BD3
                     double DCB_b1b3=code_bias_[sat_no-1][BD3_C2IC6I];
-                    for(int i=0;i<MAX_GNSS_FRQ_NUM;i++){
+                    for(int i=0;i<MAX_GNSS_USED_FRQ_NUM;i++){
                         if(sat_info_->P_code[i]==GNSS_CODE_NONE){
                             cbias_[SYS_INDEX_BDS][i]=0.0;
                             continue;
                         }
-                        if(i==0){
+                        else if(sat_info_->P_code[i]==GNSS_CODE_L2I){
                             cbias_[NSYS][i]=DCB_b1b3;
                         }
-                        else if(i==1){
+                        else if(sat_info_->P_code[i]==GNSS_CODE_L7I){
                             cbias_[NSYS][i]=0.0;
                         }
-                        else if(i==2){
+                        else if(sat_info_->P_code[i]==GNSS_CODE_L6I){
                             cbias_[NSYS][i]=0.0;
                         }
-                        else if(i==3){
-                            //B1C
-                            if(sat_info_->P_code[i]==GNSS_CODE_L1X)  DCB_b1b3=code_bias_[sat_no-1][BD3_C1XC6I];
-                            else if(sat_info_->P_code[i]==GNSS_CODE_L1P) DCB_b1b3=code_bias_[sat_no-1][BD3_C1PC6I];
-                            else if(sat_info_->P_code[i]==GNSS_CODE_L1D) DCB_b1b3=code_bias_[sat_no-1][BD3_C1DC6I];
-                            cbias_[NSYS][i]=DCB_b1b3;
+                        else if(sat_info_->P_code[i]==GNSS_CODE_L1X){
+                            cbias_[NSYS][i]=code_bias_[sat_no-1][BD3_C1XC6I];
                         }
-                        else if(i==4){
-                            //B2a
-                            double DCB_b2b3=0.0;
-                            if(sat_info_->P_code[i]==GNSS_CODE_L5X) DCB_b2b3=code_bias_[sat_no-1][BD3_C1XC6I]-code_bias_[sat_no-1][BD3_C1XC5X];
-                            else if(sat_info_->P_code[i]==GNSS_CODE_L5P) DCB_b2b3=code_bias_[sat_no-1][BD3_C1PC6I]-code_bias_[sat_no-1][BD3_C1PC5P];
-                            else if(sat_info_->P_code[i]==GNSS_CODE_L5D) DCB_b2b3=code_bias_[sat_no-1][BD3_C1DC6I]-code_bias_[sat_no-1][BD3_C1DC5D];
-                            cbias_[NSYS][i]=DCB_b2b3;
+                        else if(sat_info_->P_code[i]==GNSS_CODE_L1P){
+                            cbias_[NSYS][i]=code_bias_[sat_no-1][BD3_C1PC6I];
                         }
-                        else if(i==5){
-                            //B2b
-                            cbias_[NSYS][i]=0.0;
+                        else if(sat_info_->P_code[i]==GNSS_CODE_L1D){
+                            cbias_[NSYS][i]=code_bias_[sat_no-1][BD3_C1DC6I];
+                        }
+                        else if(sat_info_->P_code[i]==GNSS_CODE_L5X){
+                            cbias_[NSYS][i]=code_bias_[sat_no-1][BD3_C1XC6I]-code_bias_[sat_no-1][BD3_C1XC5X];
+                        }
+                        else if(sat_info_->P_code[i]==GNSS_CODE_L5P){
+                            cbias_[NSYS][i]=code_bias_[sat_no-1][BD3_C1PC6I]-code_bias_[sat_no-1][BD3_C1PC5P];
+
+                        }
+                        else if(sat_info_->P_code[i]==GNSS_CODE_L5D){
+                            cbias_[NSYS][i]=code_bias_[sat_no-1][BD3_C1DC6I]-code_bias_[sat_no-1][BD3_C1DC5D];
                         }
                     }
                 }
@@ -336,7 +413,7 @@ namespace PPPLib{
                     //BD2
                     double DCB_b1b2=code_bias_[sat_no-1][BD2_C2IC7I];
                     double DCB_b1b3=code_bias_[sat_no-1][BD2_C2IC6I];
-                    for(int i=0;i<MAX_GNSS_FRQ_NUM;i++){
+                    for(int i=0;i<MAX_GNSS_USED_FRQ_NUM;i++){
                         if(sat_info_->P_code[i]==GNSS_CODE_NONE){
                             cbias_[SYS_INDEX_BDS][i]=0.0;
                             continue;
@@ -356,7 +433,7 @@ namespace PPPLib{
             else if(PPPLibC_.gnssC.eph_opt==EPH_PRE){
                 if(PPPLibC_.gnssC.ac_opt==AC_COM){
                     // base on b1b2
-                    for(int i=0;i<MAX_GNSS_FRQ_NUM;i++){
+                    for(int i=0;i<MAX_GNSS_USED_FRQ_NUM;i++){
                         if(sat_info_->P_code[i]==GNSS_CODE_NONE){
                             cbias_[SYS_INDEX_BDS][i]=0.0;
                             continue;
@@ -387,7 +464,7 @@ namespace PPPLib{
                     double a=(SQR(FREQ_BDS_B1)-SQR(FREQ_BDS_B3));
                     double alpha=SQR(FREQ_BDS_B1)/a;
                     double beta=-SQR(FREQ_BDS_B3)/a;
-                    for(int i=0;i<MAX_GNSS_FRQ_NUM;i++){
+                    for(int i=0;i<MAX_GNSS_USED_FRQ_NUM;i++){
                         if(sat_info_->P_code[i]==GNSS_CODE_NONE){
                             cbias_[SYS_INDEX_BDS][i]=0.0;
                             continue;
@@ -453,7 +530,7 @@ namespace PPPLib{
             double alpha=SQR(FREQ_GAL_E1)/a;
             double beta=-SQR(FREQ_GAL_E5A)/a;
 
-            for(int i=0;i<MAX_GNSS_FRQ_NUM;i++){
+            for(int i=0;i<MAX_GNSS_USED_FRQ_NUM;i++){
                 if(sat_info_->P_code[i]==GNSS_CODE_NONE){
                     cbias_[SYS_INDEX_GAL][i]=0.0;
                     continue;
@@ -484,7 +561,7 @@ namespace PPPLib{
             double alpha=SQR(FREQ_GLO_G1)/a;
             double beta=-SQR(FREQ_GLO_G2)/a;
 
-            for(int i=0;i<MAX_GNSS_FRQ_NUM;i++){
+            for(int i=0;i<MAX_GNSS_USED_FRQ_NUM;i++){
                 if(sat_info_->P_code[i]==GNSS_CODE_NONE){
                     cbias_[SYS_INDEX_GLO][i]=0.0;
                     continue;
@@ -505,7 +582,7 @@ namespace PPPLib{
             double alpha=SQR(FREQ_QZS_L1)/a;
             double beta=-SQR(FREQ_QZS_L2)/a;
 
-            for(int i=0;i<MAX_GNSS_FRQ_NUM;i++){
+            for(int i=0;i<MAX_GNSS_USED_FRQ_NUM;i++){
                 if(sat_info_->P_code[i]==GNSS_CODE_NONE){
                     cbias_[SYS_INDEX_QZS][i]=0.0;
                     continue;
@@ -724,14 +801,14 @@ namespace PPPLib{
 
         if(sys==SYS_GPS||sys==SYS_BDS||sys==SYS_GAL||sys==SYS_QZS){
             if((sat_info->brd_eph_index=idx_eph=SelectBrdEph(sat_info,-1))<0){
-                sat_info->stat=SAT_NO_USE;
+                sat_info->stat=SAT_NO_PROD;
 //                return false;
             }
             else BrdSatClkErr(sat_info,brd_eph_[idx_eph]);
         }
         else if(sys==SYS_GLO){
             if((sat_info->brd_eph_index=idx_glo_eph=SelectGloBrdEph(sat_info,-1))<0){
-                sat_info->stat=SAT_NO_USE;
+                sat_info->stat=SAT_NO_PROD;
 //                return false;
             }
             else BrdGloSatClkErr(sat_info,brd_glo_eph_[idx_glo_eph]);
@@ -973,13 +1050,13 @@ namespace PPPLib{
         }
         for(i=0,j=pre_clk_.size()-1;i<j;){
             k=(i+j)/2;
-            if(pre_clk_[k].t_tag.TimeDiff(sat_info_->t_trans.t_)<0.0) i=k+1;
+            if(pre_clk_[k].t_tag.TimeDiff(sat_info->t_trans.t_)<0.0) i=k+1;
             else j=k;
         }
         idx=i<=0?0:i-1;
 
-        t[0]=sat_info_->t_trans.TimeDiff(pre_clk_[idx].t_tag.t_);
-        t[1]=sat_info_->t_trans.TimeDiff(pre_clk_[idx+1].t_tag.t_);
+        t[0]=sat_info->t_trans.TimeDiff(pre_clk_[idx].t_tag.t_);
+        t[1]=sat_info->t_trans.TimeDiff(pre_clk_[idx+1].t_tag.t_);
         c[0]=pre_clk_[idx].clk[sat_info->sat.sat_.no-1];
         c[1]=pre_clk_[idx+1].clk[sat_info->sat.sat_.no-1];
 
@@ -1118,13 +1195,11 @@ namespace PPPLib{
     }
 
     bool cEphModel::PreEphModel(tSatInfoUnit *sat_info) {
-        tSatInfoUnit d1E_3;
-
-        d1E_3.t_trans=sat_info->t_trans;
+        tSatInfoUnit d1E_3=*sat_info;
         d1E_3.t_trans+=(1E-3);
 
         if(!PreSatPos(sat_info)||!PreSatClkCorr(sat_info)) return false;
-        if(!PreSatPos(&d1E_3)||!PreSatClkCorr(sat_info)) return false;
+        if(!PreSatPos(&d1E_3)||!PreSatClkCorr(&d1E_3)) return false;
 
         Vector3d dant(0,0,0);
         SatPcoCorr(sat_info,sat_info->pre_pos,dant);
@@ -1165,19 +1240,25 @@ namespace PPPLib{
             // broadcast clock error
             if(!BrdClkError(sat_info)) return false;
 
-            if(sat_info->stat==SAT_NO_USE) continue;
+            if(sat_info->stat!=SAT_USED) continue;
             // broadcast clock error correction
             sat_info->t_trans+=(-sat_info->brd_clk[0]);
 
             if(PPPLibC_.gnssC.eph_opt==EPH_BRD){
-                LOG_IF(j==0,DEBUG)<<endl;
                 LOG_IF(j==0,DEBUG)<<"SATELLITE BROADCAST EPHEMERIS: "<<sat_info->t_tag.GetTimeStr(1);
                 BrdEphModel(sat_info);
-                sprintf(buff,"%s %14.3f %14.3f %14.3f %14.3f",sat_info->sat.sat_.id.c_str(),sat_info->brd_pos[0],sat_info->brd_pos[1],sat_info->brd_pos[2],sat_info->brd_clk[0]*CLIGHT);
+                sprintf(buff,"%s %14.3f %14.3f %14.3f %14.3f %10.3f %10.3f %10.3f",sat_info->sat.sat_.id.c_str(),
+                        sat_info->brd_pos[0],sat_info->brd_pos[1],sat_info->brd_pos[2],sat_info->brd_clk[0]*CLIGHT,
+                        sat_info->brd_vel[0],sat_info->brd_vel[1],sat_info->brd_vel[2]);
                 LOG(DEBUG)<<buff;
             }
             else if(PPPLibC_.gnssC.eph_opt==EPH_PRE){
+                LOG_IF(j==0,DEBUG)<<"SATELLITE PRECISE EPHEMERIS: "<<sat_info->t_tag.GetTimeStr(1);
                 PreEphModel(sat_info);
+                sprintf(buff,"%s %14.3f %14.3f %14.3f %14.3f %10.3f %10.3f %10.3f",sat_info->sat.sat_.id.c_str(),
+                        sat_info->pre_pos[0],sat_info->pre_pos[1],sat_info->pre_pos[2],sat_info->pre_clk[0]*CLIGHT,
+                        sat_info->pre_vel[0],sat_info->pre_vel[1],sat_info->pre_vel[2]);
+                LOG(DEBUG)<<buff;
             }
         }
     }

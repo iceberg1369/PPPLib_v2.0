@@ -199,6 +199,7 @@ namespace PPPLib{
         double csc_P[MAX_GNSS_USED_FRQ_NUM];
         double cor_P[MAX_GNSS_USED_FRQ_NUM];        // corrected code bias BDS satellite-specific multipath
         double cor_L[MAX_GNSS_USED_FRQ_NUM];        // corrected phase bias for PPP-AR
+        double cor_D[MAX_GNSS_USED_FRQ_NUM];
         double lam[MAX_GNSS_USED_FRQ_NUM];
         double frq[MAX_GNSS_USED_FRQ_NUM];
 
@@ -246,6 +247,8 @@ namespace PPPLib{
         double ion_var;
         double trp_var;
 
+        int outc[MAX_GNSS_USED_FRQ_NUM];
+        int lock[MAX_GNSS_USED_FRQ_NUM];
     }tSatInfoUnit;
 
     class cGnssObsOperator {
@@ -253,8 +256,6 @@ namespace PPPLib{
         cGnssObsOperator();
         ~cGnssObsOperator();
 
-    private:
-        void SmoothMw(tPPPLibConf C,tSatInfoUnit* sat_info);
 
     public:
         void ReAlignObs(tPPPLibConf C,tSatInfoUnit& sat_info, tSatObsUnit sat_obs,int f,int frq_idx);
@@ -265,10 +266,12 @@ namespace PPPLib{
         double GnssObsCmcComb(double obs_P,double obs_L1,double obs_L2,double f1,double f2);
         double GnssObsTdComb(double cur_obs,double pre_obs);
         void MakeGnssObsComb(tPPPLibConf C,GNSS_OBS_COMB type,tSatInfoUnit* sat_info,const tSatInfoUnit previous_sat_info);
+        double GnssSdObs(const tSatInfoUnit& sat1,const tSatInfoUnit& sat2,int f,GNSS_OBS type);
 
-        void MwCycleSlip(tPPPLibConf C,double sample_dt,double dt,tSatInfoUnit* sat_info,tTime last_time);
-        void GfCycleSlip(tPPPLibConf C,double sample_dt,double dt,tSatInfoUnit* sat_info);
+        void MwCycleSlip(tPPPLibConf C,double sample_dt,double dt,tSatInfoUnit* sat_info,tSatInfoUnit* base_sat,tTime last_time);
+        void GfCycleSlip(tPPPLibConf C,double sample_dt,double dt,tSatInfoUnit* sat_info,tSatInfoUnit* base_sat);
         void LliCycleSlip();
+        void SmoothMw(tPPPLibConf C,tSatInfoUnit* sat_info,tSatInfoUnit* base_sat);
 
     };
 

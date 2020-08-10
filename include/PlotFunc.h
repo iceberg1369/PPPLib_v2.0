@@ -34,7 +34,6 @@ namespace PPPLib {
     class cPlotSat:public cPlot{
     public:
         cPlotSat();
-        cPlotSat(vector<tEpochSatUnit>gnss_obs);
         ~cPlotSat();
 
     private:
@@ -43,9 +42,8 @@ namespace PPPLib {
     public:
         void PlotSatView();
         void PlotEpochSatNum();
-
-    private:
-        vector<tEpochSatUnit> obs_;
+        void PlotSatMeas(GNSS_OBS type,int epoch,tSatInfoUnit sat_info);
+        void PlotMwAmb(tSatInfoUnit sat_info,int epoch);
     };
 
     class cPlotSol:public cPlot{
@@ -55,6 +53,7 @@ namespace PPPLib {
 
     public:
         void PlotSolPos(tSolInfoUnit sol,int epoch);
+        void PlotSolVel(tSolInfoUnit sol,int epoch);
     };
 
 }

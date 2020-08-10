@@ -26,7 +26,9 @@ namespace PPPLib {
         dx_=HTWH.inverse()*HTWL;
         for(int i=0;i<nx;i++) X[i]+=dx_[i];
 
-        flag=dx_.norm()<1E-4;
+        double n=dx_.norm();
+        flag=dx_.norm()<1E-6;
+        if(flag) v_=H.transpose()*dx_-L;
 
         return flag;
     }

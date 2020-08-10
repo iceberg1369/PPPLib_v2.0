@@ -16,6 +16,8 @@ using namespace Eigen;
 namespace PPPLib{
 
     int Round(double d);
+    double VectorMean(vector<double>& seri);
+
     template <typename Iter1,typename Iter2>
     double Dot(const Iter1 VecA,const Iter2 VecB,int SizeVec){
         double dInn=0.0;
@@ -100,11 +102,10 @@ namespace PPPLib{
         double Utc2Gmst(double ut1_utc);
         cTime* AdjWeek(cTime t);
         cTime* AdjDay(cTime t);
+        double Time2Doy();
 
     private:
-
         string Time2Str(int n);
-        double Time2Doy();
         void Time2Mjd();
         double Time2Sec(cTime& day);
 
@@ -161,19 +162,43 @@ namespace PPPLib{
 
     typedef struct{
         int nav_sys;
+        double sample_rate;
         double ele_min;
         GNSS_FRQ_OPT frq_opt;
         int gnss_frq[NSYS+1][MAX_GNSS_USED_FRQ_NUM];
         bool csc;
+        bool use_doppler;
         GNSS_AC_OPT  ac_opt;
         GNSS_EPH_OPT eph_opt;
         GNSS_ION_OPT ion_opt;
         GNSS_TRP_OPT trp_opt;
         GNSS_TID_OPT tid_opt;
         double cs_thres[2];   //mw and gf
+        double max_pdop;
+        double max_prior;
+        int max_out;
+        double ait_psd[3];
+        GNSS_AR_MODE ar_mode;
     }tGnssConf;
 
     typedef struct{
+        IMU_TYPE imu_type;
+        IMU_COORD_TYPE coord_type;
+        IMU_DATA_FORMAT data_format;
+        double sample_rate;
+        Vector3d lever;
+        double correction_time_ba;
+        double correction_time_bg;
+        double init_pos_unc;
+        double init_vel_unc;
+        double init_att_unc;
+        double init_ba_unc;
+        double init_bg_unc;
+        double psd_ba;
+        double psd_bg;
+        double psd_acce;
+        double psd_gyro;
+        bool err_model;
         FUSION_GNSS_MODE gnss_opt;
 
     }tInsConf;
@@ -219,6 +244,7 @@ namespace PPPLib{
         double rec_dcb[NSYS];
         double rec_ifb[NSYS];
         Vector2d zenith_trp_delay; // dry and wet
+        double dops[4];
 
         Vector3d att{0,0,0};  //roll pitch yaw
         Vector3d gyro_bias{0,0,0};
@@ -233,28 +259,37 @@ namespace PPPLib{
 
     public:
         int GetGnssUsedFrqs();
-        int GetSppParNum();
-        int GetPppParNum();
-        int GetDgnssParNum();
-        int GetPpkParNum();
+        int GetNumObsType();
+        int GetInsTransParNum(tPPPLibConf C);
+        int GetPPPLibPar(tPPPLibConf);
 
-        int PvaParNum();
-        int RecClkParNum();
-        int RecDcbParNum();
-        int RecIfbParNum();
-        int GloIfcbParNum();
-        int TrpParNum();
-        int IonParNum();
-        int AmbParNum();
+        int NumPos();
+        int NumVel();
+        int NumAtt();
+        int NumBa();
+        int NumBg();
+        int NumClk();
+        int NumClkDrift();
+        int NumDcb();
+        int NumIfb();
+        int NumGloIfcb();
+        int NumTrp();
+        int NumIon();
+        int NumAmb();
 
-        int ParIndexPva(int i);
-        int ParIndexClk(int sys_index);
-        int ParIndexDcb(int sys_index);
-        int ParIndexIfb(int sys_index);
-        int ParIndexGloIfcb();
-        int ParIndexTrp();
-        int ParIndexIon(int sat_no);
-        int ParIndexAmb(int f,int sat_no);
+        int IndexPos();
+        int IndexVel();
+        int IndexAtt();
+        int IndexBa();
+        int IndexBg();
+        int IndexClk(int sys_index);
+        int IndexClkDritf(int sys_index);
+        int IndexDcb(int sys_index);
+        int IndexIfb(int sys_index);
+        int IndexGloIfcb();
+        int IndexTrp();
+        int IndexIon(int sat_no);
+        int IndexAmb(int f,int sat_no);
 
     public:
         tPPPLibConf PPPLibC_;

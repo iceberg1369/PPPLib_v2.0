@@ -19,6 +19,7 @@ namespace PPPLib {
     const static double D2R=(PI/180.0);
     const static double R2D=(180.0/PI);
     const static double AS2R=(D2R/3600);
+    const static double MG2MS2=9.80665E-6;
     const static double AU=149597870691.0;
     const static double DTTOL=0.005;
 
@@ -141,8 +142,8 @@ namespace PPPLib {
         NSYS_IRN=1,
         SYS_INDEX_IRN=5
     };
-    const int NSYS=NSYS_GPS+NSYS_BDS+NSYS_GAL+NSYS_GLO+NSYS_QZS+NSYS_IRN;
-    const int MAX_SAT_NUM=NUM_GPS_SAT+NUM_BDS_SAT+NUM_GAL_SAT+NUM_GLO_SAT+NUM_QZS_SAT+NUM_IRN_SAT;
+    const int NSYS=NSYS_GPS+NSYS_BDS+NSYS_GAL+NSYS_GLO+NSYS_QZS;
+    const int MAX_SAT_NUM=NUM_GPS_SAT+NUM_BDS_SAT+NUM_GAL_SAT+NUM_GLO_SAT+NUM_QZS_SAT;
 
     enum RECEIVER_INDEX {
         REC_ROVER=0,
@@ -285,7 +286,6 @@ namespace PPPLib {
             {FREQ_GAL_E1,FREQ_GAL_E5A,FREQ_GAL_E5B, FREQ_NONE,    FREQ_NONE,    FREQ_NONE},
             {FREQ_GLO_G1,FREQ_GLO_G2, FREQ_NONE,    FREQ_NONE,    FREQ_NONE,    FREQ_NONE},
             {FREQ_QZS_L1,FREQ_QZS_L2, FREQ_QZS_L5,  FREQ_NONE,    FREQ_NONE,    FREQ_NONE},
-            {FREQ_NONE,  FREQ_NONE,   FREQ_NONE,    FREQ_NONE,    FREQ_NONE,    FREQ_NONE}
     };
 
     const double MAX_DTOE_GPS=7200.0;
@@ -398,7 +398,6 @@ namespace PPPLib {
             {   "CABXZ",       "IQX",      "IQX",      "IQX",   "CABXZ",    ""},
             {      "PC",        "PC",      "IQX",      "ABX",    "ABXP",    ""},
             {   "CSLXZ",       "SLX",   "IQXDPZ",    "SLXEZ",        "",    ""},
-            {        "",          "",         "",         "",        "",    ""}
     };
 
     const int MAX_GNSS_CODE_BIAS_PAIRS=12;
@@ -468,7 +467,21 @@ namespace PPPLib {
     enum GNSS_SAT_STAT {
         SAT_NO_USE=-1,
         SAT_USED=0,
+        SAT_NO_OBS=1,
+        SAT_NO_PROD,
+        SAT_LOW_EL,
+        SAT_PRIOR_RES,
         SAT_SLIP,
+    };
+
+    const string kGnssSatStatStr[]{
+        "NO_USE",
+        "USED",
+        "NO_OBS",
+        "NO_PROD",
+        "LOE_EL",
+        "PRIOR_RES",
+        "SLIP",
     };
 
     enum GNSS_OBS_COMB {
@@ -478,6 +491,15 @@ namespace PPPLib {
         COMB_MP,
         COMB_CSC,
         COMB_TDCP,
+        COMB_SSD
+    };
+
+    enum GNSS_AR_MODE {
+        AR_OFF,
+        AR_CONT,
+        AR_INST,
+        AR_FIX_HOLD,
+        AR_PPP_AR,
     };
 
     // ins related constant definitions
@@ -488,8 +510,13 @@ namespace PPPLib {
     };
 
     enum IMU_COORD_TYPE {
-        IMU_COORD_ENU,
-        IMU_COORD_NED,
+        IMU_COORD_RFU,
+        IMU_COORD_FRD,
+    };
+
+    enum IMU_DATA_FORMAT {
+        IMU_FORMAT_INCR,
+        IMU_FORMAT_RATE,
     };
 
     enum SOLVE_ESTIMATOR {
@@ -536,6 +563,24 @@ namespace PPPLib {
         SOL_IG_TC
     };
 
+    const double kChiSqr[100]={  //chi-sqr(n) (alpha=0.001)
+            10.8,13.8,16.3,18.5,20.5,22.5,24.3,26.1,27.9,29.6,
+            31.3,32.9,34.5,36.1,37.7,39.3,40.8,42.3,43.8,45.3,
+            46.8,48.3,49.7,51.2,52.6,54.1,55.5,56.9,58.3,59.7,
+            61.1,62.5,63.9,65.2,66.6,68.0,69.3,70.7,72.1,73.4,
+            74.7,76.0,77.3,78.6,80.0,81.3,82.6,84.0,85.4,86.7,
+            88.0,89.3,90.6,91.9,93.3,94.7,96.0,97.4,98.7,100 ,
+            101 ,102 ,103 ,104 ,105 ,107 ,108 ,109 ,110 ,112 ,
+            113 ,114 ,115 ,116 ,118 ,119 ,120 ,122 ,123 ,125 ,
+            126 ,127 ,128 ,129 ,131 ,132 ,133 ,134 ,135 ,137 ,
+            138 ,139 ,140 ,142 ,143 ,144 ,145 ,147 ,148 ,149
+    };
+
+    const double UNC_POS=30.0;
+    const double UNC_VEL=30.0;
+    const double UNC_ATT=(10.0*D2R);
+    const double UNC_BA=(1000.0*MG2MS2);
+    const double UNC_BG=(10.0*D2R/3600.0);
 }
 
 #endif //PPPLIB_CONSTANT_H

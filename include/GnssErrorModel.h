@@ -35,13 +35,15 @@ namespace PPPLib{
         ~cTrpDelayModel();
 
     public:
+        Vector2d GetTrpError(double humi,double *x,int it);
         Vector2d GetSaasTrp(double humi,Vector2d* sat_trp_dry, Vector4d* sat_trp_wet);
         void UpdateSatInfo() override;
         void InitTrpModel(Vector3d& blh);
 
     private:
         bool SaasModel(double humi);
-        Vector4d EstTrpWet(double humi);
+        Vector4d EstTrpWet(double humi,double *x,int it);
+        void TrpMapNeil(cTime t,double el);
 
     private:
         Vector2d zenith_trp_={0,0};                   //dry, wet
@@ -56,6 +58,7 @@ namespace PPPLib{
         ~cIonDelayModel();
 
     public:
+        Vector2d GetIonError();
         Vector2d GetKlobIon();
         void UpdateSatInfo() override;
         void InitIondelayModel(double ion_para[NSYS][8]);

@@ -13,6 +13,17 @@ namespace PPPLib{
         return i;
     }
 
+    double VectorMean(vector<double>& seri){
+        if(seri.size()<=0) return 0.0;
+
+        double total=0.0;
+        for(int i=0;i<seri.size();i++){
+            total+=seri[i];
+        }
+
+        return total/seri.size();
+    }
+
     string Doul2Str(int str_len, int dec_len, const string str_filler, const double src_num, string &dst_str){
         dst_str=to_string(src_num); /* with 6 decimal digit */
         if(dec_len>0)dst_str=dst_str.substr(0,dst_str.length()-6+dec_len); /* decimal digits */
@@ -754,92 +765,152 @@ namespace PPPLib{
         else return PPPLibC_.gnssC.frq_opt+1;
     }
 
-    int cParSetting::GetSppParNum() {
-        return PvaParNum()+RecClkParNum();
+    int cParSetting::GetNumObsType() {
+        if(PPPLibC_.mode==MODE_SPP||PPPLibC_.mode==MODE_DGNSS||PPPLibC_.mode_opt==MODE_OPT_SPP){
+            if(PPPLibC_.mode_opt==MODE_OPT_KINEMATIC||PPPLibC_.dynamic) return 1+1; //code+doppler
+        }
+        else{
+            if(PPPLibC_.mode_opt==MODE_OPT_KINEMATIC||PPPLibC_.dynamic) return 1+1+1; //code+doppler+phase
+        }
     }
 
-    int cParSetting::GetPppParNum() {
-        return GetSppParNum()+RecDcbParNum()+RecIfbParNum()+GloIfcbParNum()+TrpParNum()+IonParNum()+AmbParNum();
+    int cParSetting::GetInsTransParNum(tPPPLibConf C) {
+        PPPLibC_=C;
+        return NumPos()+NumVel()+NumAtt()+NumBa()+NumBg();
     }
 
-    int cParSetting::GetDgnssParNum() {
-        return PvaParNum();
+    int cParSetting::GetPPPLibPar(tPPPLibConf C) {
+        PPPLibC_=C;
+        int a=NumPos();
+        int b=NumVel();
+        int c=NumAtt();
+        int d=NumClk();
+        int e=NumBa();
+        int f=NumBg();
+        return NumPos()+NumVel()+NumAtt()+NumBa()+NumBg()
+                       +NumClk()+NumDcb()+NumIfb()+NumGloIfcb()
+                       +NumTrp()+NumIon()+NumAmb();
     }
 
-    int cParSetting::GetPpkParNum() {
-        return PvaParNum()+TrpParNum()+IonParNum()+AmbParNum();
-    }
-
-    int cParSetting::PvaParNum() {
-        if(PPPLibC_.dynamic) return 3+3+3;
+    int cParSetting::NumPos() {
         return 3;
     }
 
-    int cParSetting::RecClkParNum() {
+    int cParSetting::NumVel() {
+        if(PPPLibC_.dynamic||PPPLibC_.mode>MODE_INS) return 3;
+        else return 0;
+    }
+
+    int cParSetting::NumAtt() {
+        if(PPPLibC_.mode>MODE_INS) return 3;
+    }
+
+    int cParSetting::NumBa() {
+        if(PPPLibC_.mode>MODE_INS) return 3;
+    }
+
+    int cParSetting::NumBg() {
+        if(PPPLibC_.mode>MODE_INS) return 3;
+    }
+
+    int cParSetting::NumClk() {
+        if(PPPLibC_.mode==MODE_INS||PPPLibC_.mode==MODE_IGLC) return 0;
         return NSYS;
     }
 
-    int cParSetting::RecDcbParNum() {
+    int cParSetting::NumClkDrift() {
+        if(PPPLibC_.mode==MODE_INS||PPPLibC_.mode==MODE_IGLC) return 0;
+        if(PPPLibC_.gnssC.use_doppler) return NSYS;
+    }
+
+    int cParSetting::NumDcb() {
+        if(PPPLibC_.mode==MODE_INS||PPPLibC_.mode==MODE_IGLC) return 0;
         if(PPPLibC_.gnssC.ion_opt==ION_CONST) return NSYS;
         return 0;
     }
 
-    int cParSetting::RecIfbParNum() {
-        if(PPPLibC_.gnssC.frq_opt>=3) return NSYS;
+    int cParSetting::NumIfb() {
+        if(PPPLibC_.mode==MODE_INS||PPPLibC_.mode==MODE_IGLC) return 0;
+        if(PPPLibC_.gnssC.frq_opt>=3&&PPPLibC_.mode<MODE_INS) return NSYS;
         return 0;
     }
 
-    int cParSetting::GloIfcbParNum() {
+    int cParSetting::NumGloIfcb() {
+        if(PPPLibC_.mode==MODE_INS||PPPLibC_.mode==MODE_IGLC) return 0;
 
     }
 
-    int cParSetting::TrpParNum() {
+    int cParSetting::NumTrp() {
+        if(PPPLibC_.mode==MODE_INS||PPPLibC_.mode==MODE_IGLC) return 0;
         if(PPPLibC_.gnssC.trp_opt<=TRP_SAAS) return 0;
         else if(PPPLibC_.gnssC.trp_opt==TRP_EST_WET) return 1;
         else if(PPPLibC_.gnssC.trp_opt==TRP_EST_GRAD) return 1+2;
     }
 
-    int cParSetting::IonParNum() {
+    int cParSetting::NumIon() {
+        if(PPPLibC_.mode==MODE_INS||PPPLibC_.mode==MODE_IGLC) return 0;
         if(PPPLibC_.gnssC.ion_opt<=ION_IF) return 0;
         else if(PPPLibC_.gnssC.ion_opt<=ION_CONST) return MAX_SAT_NUM;
     }
 
-    int cParSetting::AmbParNum() {
-        return MAX_SAT_NUM*GetGnssUsedFrqs();
+    int cParSetting::NumAmb() {
+        if(PPPLibC_.mode==MODE_PPP||PPPLibC_.mode==MODE_PPK||PPPLibC_.mode_opt==MODE_OPT_PPP||PPPLibC_.mode_opt==MODE_OPT_PPK)
+            return MAX_SAT_NUM*GetGnssUsedFrqs();
+        else return 0;
     }
 
-    int cParSetting::ParIndexPva(int i) {
-        if(i<3) return 0;
-        else if(i<6) return 3;
-        else if(i<9) return 6;
+    int cParSetting::IndexPos() {
+        return 0;
     }
 
-    int cParSetting::ParIndexClk(int sys_index) {
-        return PvaParNum()+sys_index;
+    int cParSetting::IndexVel() {
+        if(NumVel()>0) return NumPos();
+        else return -1;
     }
 
-    int cParSetting::ParIndexDcb(int sys_index) {
-        return PvaParNum()+RecClkParNum()+sys_index;
+    int cParSetting::IndexAtt() {
+        if(NumAtt()>0) return NumPos()+NumVel();
     }
 
-    int cParSetting::ParIndexIfb(int sys_index) {
-        return PvaParNum()+RecClkParNum()+RecDcbParNum()+sys_index;
+    int cParSetting::IndexBa() {
+        if(NumBa()>0) return NumPos()+NumVel()+NumAtt();
     }
 
-    int cParSetting::ParIndexGloIfcb() {
-
+    int cParSetting::IndexBg() {
+        if(NumBg()>0) return NumPos()+NumVel()+NumAtt()+NumBa();
     }
 
-    int cParSetting::ParIndexTrp() {
-        return PvaParNum()+RecClkParNum()+RecDcbParNum()+RecIfbParNum()+GloIfcbParNum();
+    int cParSetting::IndexClk(int sys_index) {
+        if(NumClk()>0) return NumPos()+NumVel()+NumAtt()+NumBa()+NumBg()+sys_index;
+        else return -1;
     }
 
-    int cParSetting::ParIndexIon(int sat_no) {
-        return PvaParNum()+RecClkParNum()+RecDcbParNum()+RecIfbParNum()+GloIfcbParNum()+TrpParNum()+sat_no-1;
+    int cParSetting::IndexClkDritf(int sys_index) {
+        if(NumClkDrift()) return NumPos()+NumVel()+NumAtt()+NumBa()+NumBg()+NumClk()+sys_index;
     }
 
-    int cParSetting::ParIndexAmb(int f, int sat_no) {
-        return PvaParNum()+RecClkParNum()+RecDcbParNum()+RecIfbParNum()+GloIfcbParNum()+TrpParNum()+IonParNum()
+    int cParSetting::IndexDcb(int sys_index) {
+        return NumPos()+NumVel()+NumAtt()+NumBa()+NumBg()+NumClk()+NumClkDrift()+sys_index;
+    }
+
+    int cParSetting::IndexIfb(int sys_index) {
+        return NumPos()+NumVel()+NumAtt()+NumBa()+NumBg()+NumClk()+NumClkDrift()+NumDcb()+sys_index;
+    }
+
+    int cParSetting::IndexGloIfcb() {
+        return NumPos()+NumVel()+NumAtt()+NumBa()+NumBg()+NumClk()+NumClkDrift()+NumIfb();
+    }
+
+    int cParSetting::IndexTrp() {
+        return NumPos()+NumVel()+NumAtt()+NumBa()+NumBg()+NumClk()+NumClkDrift()+NumIfb()+NumGloIfcb();
+    }
+
+    int cParSetting::IndexIon(int sat_no) {
+        return NumPos()+NumVel()+NumAtt()+NumBa()+NumBg()+NumClk()+NumClkDrift()+NumIfb()+NumGloIfcb()+NumTrp()+sat_no-1;
+    }
+
+    int cParSetting::IndexAmb(int f, int sat_no) {
+        return NumPos()+NumVel()+NumAtt()+NumBa()+NumBg()+NumClk()+NumClkDrift()+NumIfb()+NumGloIfcb()+NumTrp()+NumIon()
                +f*MAX_SAT_NUM+sat_no-1;
     }
 }

@@ -67,6 +67,12 @@ namespace PPPLib {
 
     cImuData::~cImuData() {data_.clear();}
 
+    void cImuData::SetImu(IMU_TYPE imu_type, IMU_COORD_TYPE coord_type, IMU_DATA_FORMAT data_format) {
+        imu_type_=imu_type;
+        imu_coord_type_=coord_type;
+        data_format_=data_format;
+    }
+
     void cImuData::SetImuType(PPPLib::IMU_TYPE type) {imu_type_=type;}
 
     void cImuData::SetImuCoordType(PPPLib::IMU_COORD_TYPE type) {imu_coord_type_=type;}
@@ -80,33 +86,31 @@ namespace PPPLib {
 
     cInsMech::~cInsMech() {}
 
-    Eigen::Quaterniond cInsMech::AttitudeUpdate(PPPLib::tImuDataUnit &pre_imu_data,
-                                                PPPLib::tImuDataUnit &cur_imu_data,
-                                                const PPPLib::tSolInfoUnit &pre_sol_info) {
-        double dt=cur_imu_data.t_tag_.TimeDiff(pre_imu_data.t_tag_.t_);
-        Vector3d theta_k(cur_imu_data.gyro_),theta_k_1(pre_imu_data.gyro_);
+    Eigen::Quaterniond cInsMech::AttitudeUpdate(PPPLib::tImuInfoUnit &pre_imu_info,
+                                                PPPLib::tImuInfoUnit &cur_imu_info) {
+        double dt=cur_imu_info.dt;
+        Vector3d theta_k(cur_imu_info.cor_gyro*dt),theta_k_1(pre_imu_info.cor_gyro*dt);
 
         //等效旋转矢量
         Vector3d cur_phi=theta_k+VectorSkew(theta_k_1)*theta_k/12.0; //单子样+前一周期
         Quaterniond quat_bb=RotationVector2Quaternion(cur_phi);
 
-        Vector3d wiee(0,0,OMGE_GPS);
+        Vector3d wiee(0,0,-OMGE_GPS);
         Vector3d zeta=wiee*dt;
         Quaterniond quat_ee=RotationVector2Quaternion(zeta).conjugate();
-        Quaterniond quat_k_1=Euler2Quaternion(pre_sol_info.att);
+        Quaterniond quat_k_1=RotationMatrix2Quaternion(pre_imu_info.Cbe);
         Quaterniond qbn_k=quat_ee*quat_k_1*quat_bb;
 
         return qbn_k.normalized();
     }
 
-    Eigen::Vector3d cInsMech::VelocityUpdate(PPPLib::tImuDataUnit &pre_imu_data,
-                                             PPPLib::tImuDataUnit &cur_imu_data,
-                                             const PPPLib::tSolInfoUnit &pre_sol_info) {
-        Vector3d pos=pre_sol_info.pos, vel=pre_sol_info.vel;
-        double dt=cur_imu_data.t_tag_.TimeDiff(pre_imu_data.t_tag_.t_);
+    Eigen::Vector3d cInsMech::VelocityUpdate(PPPLib::tImuInfoUnit &pre_imu_info,
+                                             PPPLib::tImuInfoUnit &cur_imu_info) {
+        Vector3d pos=pre_imu_info.re, vel=pre_imu_info.ve;
+        double dt=cur_imu_info.dt;
         Vector3d wiee(0,0,OMGE_GPS);
-        Vector3d theta_k(cur_imu_data.gyro_),theta_k_1(pre_imu_data.gyro_);
-        Vector3d vb_k(cur_imu_data.acce_),vb_k_1(pre_imu_data.acce_);
+        Vector3d theta_k(cur_imu_info.cor_gyro*dt),theta_k_1(pre_imu_info.cor_gyro*dt);
+        Vector3d vb_k(cur_imu_info.cor_acce*dt),vb_k_1(pre_imu_info.cor_acce*dt);
 
         Vector3d coord_blh=Xyz2Blh(pos);
         Matrix3d Cen=CalcCen(coord_blh,COORD_NED);
@@ -119,27 +123,71 @@ namespace PPPLib {
         Vector3d vrot=theta_k.cross(vb_k)*0.5;
         Vector3d vscul=(theta_k_1.cross(vb_k)+vb_k_1.cross(theta_k))/12.0;
 
-        Quaterniond pre_quat=Euler2Quaternion(pre_sol_info.att);
+        Quaterniond pre_quat=RotationMatrix2Quaternion(pre_imu_info.Cbe);
         Matrix3d Cbe=pre_quat.toRotationMatrix();
         Vector3d delta_ve=Cee*Cbe*(vb_k+vrot+vscul);
 
-        return (pre_sol_info.vel+delta_gcor+delta_ve);
+        return (vel+delta_gcor+delta_ve);
     }
 
-    Eigen::Vector3d cInsMech::PositionUpdate(const PPPLib::tSolInfoUnit &pre_sol_info,const Vector3d& cur_vel, double dt) {
+    Eigen::Vector3d cInsMech::PositionUpdate(const tImuInfoUnit& pre_imu_info,const Vector3d& cur_vel, double dt) {
         Eigen::Vector3d pos;
-        pos=(pre_sol_info.vel+cur_vel)*0.5+pre_sol_info.pos;
+        pos=(pre_imu_info.ve+cur_vel)*0.5*dt+pre_imu_info.re;
+        return pos;
     }
 
-    tSolInfoUnit cInsMech::InsMechanization(tImuDataUnit &pre_imu_data, tImuDataUnit &cur_imu_data, const tSolInfoUnit &sol_info) {
-        tSolInfoUnit sol=sol_info;
+    tImuInfoUnit cInsMech::InsMechanization(tPPPLibConf C,tImuInfoUnit &pre_imu_info, tImuInfoUnit &cur_imu_info) {
 
-        sol.att=Quaternion2Euler(AttitudeUpdate(pre_imu_data,cur_imu_data,sol_info));
-        sol.vel=VelocityUpdate(pre_imu_data,cur_imu_data,sol_info);
-        sol.pos=PositionUpdate(sol_info,sol.vel,cur_imu_data.t_tag_.TimeDiff(pre_imu_data.t_tag_.t_));
-        sol.t_tag=cur_imu_data.t_tag_;
+        if(C.insC.err_model){
 
-        return sol;
+        }else{
+            cur_imu_info.cor_gyro=cur_imu_info.raw_gyro-pre_imu_info.bg;
+            cur_imu_info.cor_acce=cur_imu_info.raw_acce-pre_imu_info.ba;
+        }
+
+        cur_imu_info.Cbe=Quaternion2RotationMatrix(AttitudeUpdate(pre_imu_info,cur_imu_info));
+        cur_imu_info.ve=VelocityUpdate(pre_imu_info,cur_imu_info);
+        cur_imu_info.re=PositionUpdate(pre_imu_info,cur_imu_info.ve,cur_imu_info.t_tag.TimeDiff(pre_imu_info.t_tag.t_));
+
+        return cur_imu_info;
+    }
+
+    Eigen::MatrixXd cInsMech::StateTransferMat(tPPPLibConf C,PPPLib::tImuInfoUnit &pre_imu_info,
+                                               PPPLib::tImuInfoUnit &cur_imu_info,int nx) {
+        using Eigen::Matrix3d;
+        using Eigen::MatrixXd;
+        using Eigen::Vector3d;
+
+        auto &vel=cur_imu_info.ve;
+        auto &fb=cur_imu_info.raw_acce;
+        auto &wb=cur_imu_info.raw_gyro;
+        Vector3d wiee(0,0,OMGE_GPS);
+        auto &Cbe=cur_imu_info.Cbe;
+        double dt=cur_imu_info.dt;
+
+        MatrixXd F=MatrixXd::Zero(nx,nx);
+
+        //position-velocity
+        F.block<3,3>(0,3)=Matrix3d::Identity();
+
+        //velocity-velocity
+        F.block<3,3>(3,3)=-2.0*VectorSkew(wiee);
+        //velocity-attitude
+        F.block<3,3>(3,6)=VectorSkew(Cbe*fb);
+        //velocity-ba
+        F.block<3,3>(3,12)=Cbe;
+
+        //attitude-attitude
+        F.block<3,3>(6,6)=-1.0*VectorSkew(wiee);
+        //attitute-bg
+        F.block<3,3>(6,9)=Cbe;
+
+        //ba-ba
+        F.block<3,3>(9,9)=Matrix3d::Identity()*(-1.0/C.insC.correction_time_ba);
+        //bg-bg
+        F.block<3,3>(12,12)=Matrix3d::Identity()*(-1.0/C.insC.correction_time_bg);
+
+        return MatrixXd::Identity(nx,nx)+F*dt;
     }
 
     Eigen::Vector3d CalculateGravity(const Vector3d coord_blh,bool is_ecef){

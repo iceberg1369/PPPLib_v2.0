@@ -49,74 +49,54 @@ namespace PPPLib {
 
     cPlotSat::cPlotSat() {}
 
-    cPlotSat::cPlotSat(vector<tEpochSatUnit> gnss_obs) {obs_=gnss_obs;}
-
     cPlotSat::~cPlotSat() {}
 
     void cPlotSat::PlotSatView() {
-//        int epoch_num=obs_.size(),i,j,sat_no;
-//        MatrixXd sat_view(epoch_num,MAX_SAT_NUM);
-//        sat_view<<MatrixXd::Zero(epoch_num,MAX_SAT_NUM);
-//
-//        for(i=0;i<epoch_num;i++){
-//            for(j=0;j<obs_.at(i).sat_num;j++){
-//                sat_no=obs_.at(i).epoch_data.at(j).sat.sat_.no;
-//                sat_view(i,sat_no-1)=1;
-//            }
-//        }
-//
-//        vector<int>no_zero_sat_no;
-//        for(i=0;i<MAX_SAT_NUM-1;i++){
-//            if(sat_view.col(i).mean()!=0.0) no_zero_sat_no.push_back(i+1);
-//        }
-//
-//        MatrixXd no_zero_sat_view(epoch_num, no_zero_sat_no.size());
-//        for(i=0;i<no_zero_sat_no.size();i++){
-//            no_zero_sat_view.col(i)=sat_view.col(no_zero_sat_no.at(i)-1);
-//        }
-//
-//        vector<int>t;
-//        for(i=1;i<epoch_num;i++) t.push_back(i);
 
-//        plt::plot(t,no_zero_sat_view.col(0))
     }
 
     void cPlotSat::PlotEpochSatNum() {
-//        int epoch_num=obs_.size(),i,j,k;
-//        int sat_num[NSYS]={0};
-//        vector<int>epoch_sat_num[NSYS];
-//        vector<int>t;
-//
-//        for(i=0;i<epoch_num;i++){
-//            t.push_back(i+1);
-//            for(j=0;j<obs_.at(i).sat_num;j++){
-//                switch(obs_.at(i).epoch_data.at(j).sat.sat_.sys){
-//                    case SYS_GPS: sat_num[SYS_INDEX_GPS]++; break;
-//                    case SYS_BDS: sat_num[SYS_INDEX_BDS]++; break;
-//                    case SYS_GAL: sat_num[SYS_INDEX_GAL]++; break;
-//                    case SYS_GLO: sat_num[SYS_INDEX_GLO]++; break;
-//                    case SYS_QZS: sat_num[SYS_INDEX_QZS]++; break;
-//                    case SYS_IRN: sat_num[SYS_INDEX_IRN]++; break;
-//                }
-//            }
-//            epoch_sat_num[SYS_INDEX_GPS].push_back(sat_num[SYS_INDEX_GPS]);
-//            epoch_sat_num[SYS_INDEX_BDS].push_back(sat_num[SYS_INDEX_BDS]);
-//            epoch_sat_num[SYS_INDEX_GAL].push_back(sat_num[SYS_INDEX_GAL]);
-//            epoch_sat_num[SYS_INDEX_GLO].push_back(sat_num[SYS_INDEX_GLO]);
-//            epoch_sat_num[SYS_INDEX_QZS].push_back(sat_num[SYS_INDEX_QZS]);
-//            epoch_sat_num[SYS_INDEX_IRN].push_back(sat_num[SYS_INDEX_IRN]);
-//            for(k=0;k<NSYS;k++) sat_num[k]=0;
-//
-//        }
-//
-//        string sys_flag[NSYS]={"GPS","BDS","GAL","GLO","QZS","IRN"};
-//        for(i=0;i<NSYS;i++){
-//            if(accumulate(begin(epoch_sat_num[i]),end(epoch_sat_num[i]),0.0)==0.0) continue;
-////            plt::named_plot(sys_flag[i],epoch_sat_num[i]);
-//            plt::legend();
-//        }
-//        plt::show();
 
+    }
+
+    void cPlotSat::PlotSatMeas(GNSS_OBS type,int epoch,tSatInfoUnit sat_info) {
+
+        static vector<double>x,t;
+
+        double meas=sat_info.raw_D[0];
+        if(meas==0.0)
+            return;
+
+        x.push_back(sat_info.raw_D[0]);
+        t.push_back(epoch);
+
+        if(epoch%10==0){
+            plt::figure(3);
+            plt::ion();
+            plt::clf();
+            plt::named_plot("meas",t,x);
+            plt::pause(0.01);
+        }
+
+    }
+
+    void cPlotSat::PlotMwAmb(tSatInfoUnit sat_info,int epoch) {
+        static vector<double>mw,smw,t;
+        mw.push_back(sat_info.raw_mw[0]);
+        smw.push_back(sat_info.sm_mw[0]);
+        t.push_back(epoch);
+
+        if(epoch%10==0){
+            plt::figure(2);
+            plt::ion();
+            plt::clf();
+            plt::named_plot("mw", t, mw);
+            plt::named_plot("smw", t, smw);
+
+            plt::title("Position Error [m]");
+            plt::legend();
+            plt::pause(0.01);
+        }
     }
 
     cPlotSol::cPlotSol() {}
@@ -155,18 +135,44 @@ namespace PPPLib {
         t.push_back(epoch);
 
         if(epoch%10==0){
+            plt::figure(1);
             plt::ion();
             plt::clf();
             plt::named_plot("east", t, x);
             plt::named_plot("north", t, y);
-            plt::named_plot("up", t, z);
+//            plt::named_plot("up", t, z);
 
             // Add graph title
-            plt::title("Sample figure");
+            plt::title("Position Error [m]");
             // Enable legend.
             plt::legend();
             // Display plot continuously
             plt::pause(0.01);
         }
     }
+
+    void cPlotSol::PlotSolVel(tSolInfoUnit sol, int epoch) {
+        static vector<double>vx, vy,vz,t;
+        vx.push_back(sol.vel[0]);
+        vy.push_back(sol.vel[1]);
+        vz.push_back(sol.vel[2]);
+        t.push_back(epoch);
+
+        if(epoch%10==0){
+            plt::figure(2);
+            plt::ion();
+            plt::clf();
+            plt::named_plot("east", t, vx);
+            plt::named_plot("north", t, vy);
+            plt::named_plot("up", t, vz);
+
+            // Add graph title
+            plt::title("Velocity Error [m]");
+            // Enable legend.
+            plt::legend();
+            // Display plot continuously
+            plt::pause(0.01);
+        }
+    }
+
 }

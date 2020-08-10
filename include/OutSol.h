@@ -21,13 +21,14 @@ namespace PPPLib {
         tSolInfoUnit CompareSol(tSolInfoUnit& sol,tSolInfoUnit& ref_sol);
 
     public:
-        void WriteSol(tSolInfoUnit sol,int epoch);
+        void WriteSol(tSolInfoUnit sol,tSatInfoUnit sat_info,int epoch);
 
 
     private:
         int ref_index_=0;
         tPPPLibConf C_;
         cPlotSol* plot_sol_;
+        cPlotSat* plot_sat_;
 
     public:
         vector<tSolInfoUnit> ref_sols_;

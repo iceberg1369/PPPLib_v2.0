@@ -11,6 +11,7 @@ namespace PPPLib{
     cOutSol::cOutSol(PPPLib::tPPPLibConf C) {
         C_=C;
         plot_sol_=new cPlotSol;
+        plot_sat_=new cPlotSat;
     }
 
     cOutSol::cOutSol(PPPLib::tPPPLibConf C,vector<tSolInfoUnit>& ref_sols) {C_=C;ref_sols_=ref_sols;}
@@ -42,11 +43,13 @@ namespace PPPLib{
         if(C_.solC.sol_coord==COORD_ENU){
             dsol.pos=Xyz2Enu(ref_blh,dxyz);
         }
+        dsol.vel=sol.vel+ref_sol.vel;
+
 
         return dsol;
     }
 
-    void cOutSol::WriteSol(tSolInfoUnit sol,int epoch) {
+    void cOutSol::WriteSol(tSolInfoUnit sol,tSatInfoUnit sat_info,int epoch) {
         tSolInfoUnit dsol;
         if(C_.solC.out_err){
             if(C_.mode_opt==MODE_OPT_STATIC||C_.mode_opt==MODE_OPT_KINE_SIM){
@@ -59,6 +62,7 @@ namespace PPPLib{
         }
         else dsol=sol;
         plot_sol_->PlotSolPos(dsol,epoch);
+//        plot_sat_->PlotMwAmb(sat_info,epoch);
     }
 
 }
