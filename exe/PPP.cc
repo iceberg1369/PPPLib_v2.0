@@ -11,7 +11,7 @@ using namespace PPPLib;
 
 int main(int argc, char** argv){
     string logini_path = SetLogConfPath("");
-    int log_level = SetLogLevel(32);
+    int log_level = SetLogLevel(1);
     InitLog(argc,argv,logini_path, log_level);
 
     tPPPLibConf C;
@@ -25,32 +25,37 @@ int main(int argc, char** argv){
     C.fileC.clk="../data/wum20820.clk";
     C.fileC.atx="../data/igs14_2097.atx";
     C.fileC.blq="../data/ocnload.blq";
-    C.fileC.erp="../data/igs19P2082.erp";
+    C.fileC.erp="../data/wum20820.erp";
+    C.gnssC.sample_rate=30.0;
 #else
     C.fileC.rover="../data1/cpt00870.19o";
     C.fileC.brd="../data1/brdm0870.19p";
     C.fileC.cbias="../data1/CAS0MGXRAP_20190870000_01D_01D_DCB.BSX";
     C.fileC.ref="../data1/cpt00870.ref";
-    C.fileC.sp3[0]="../data1/wum20453.sp3";
-    C.fileC.sp3[1]="../data1/wum20454.sp3";
-    C.fileC.sp3[2]="../data1/wum20455.sp3";
-    C.fileC.clk="../data1/wum20454.clk";
+    C.fileC.sp3[0]="../data1/wum20463.sp3";
+    C.fileC.sp3[1]="../data1/wum20464.sp3";
+    C.fileC.sp3[2]="../data1/wum20465.sp3";
+    C.fileC.clk="../data1/wum20464.clk";
+    C.fileC.erp="../data1/wum20464.erp";
     C.fileC.atx="../data1/igs14_2097.atx";
     C.fileC.blq="../data1/ocnload.blq";
+    C.gnssC.sample_rate=1.0;
 #endif
 
 
     C.mode=MODE_PPP;
-    C.mode_opt=MODE_OPT_KINE_SIM;
+    C.mode_opt=MODE_OPT_KINEMATIC;
     C.dynamic=false;
     C.gnssC.nav_sys=SYS_GPS;
     C.gnssC.frq_opt=FRQ_DUAL;
     C.gnssC.ion_opt=ION_IF;
     C.gnssC.trp_opt=TRP_EST_WET;
     C.gnssC.eph_opt=EPH_PRE;
+    C.gnssC.tid_opt=TID_SOLID;
     C.gnssC.ele_min=10.0;
     C.gnssC.max_pdop=30.0;
-    C.gnssC.sample_rate=1.0;
+    C.gnssC.max_out=5;
+    C.gnssC.max_prior=30.0;
     C.gnssC.cs_thres[0]=5.0;
     C.gnssC.cs_thres[1]=0.15;
     C.gnssC.gnss_frq[SYS_INDEX_GPS][0]=GPS_L1;C.gnssC.gnss_frq[SYS_INDEX_GPS][1]=GPS_L2;C.gnssC.gnss_frq[SYS_INDEX_GPS][2]=GPS_L5;
@@ -92,7 +97,7 @@ int main(int argc, char** argv){
             ref_reader->Reading();
         }
     }
-    else if(C.mode_opt==MODE_OPT_KINE_SIM){
+    else if(C.mode_opt==MODE_OPT_KINE_SIM||C.mode_opt==MODE_OPT_STATIC){
         tSolInfoUnit ref;
         ref.pos<<5.08465761725042e+06,2.67032540511120e+06,-2.76848090433746e+06;
         ref.vel<<0,0,0;

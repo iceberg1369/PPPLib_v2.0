@@ -39,8 +39,9 @@ namespace PPPLib{
 
     Vector2d cTrpDelayModel::GetTrpError(double humi,double* x,int it) {
         if(PPPLibC_.gnssC.trp_opt==TRP_SAAS) GetSaasTrp(humi, nullptr,nullptr);
-        else if(PPPLibC_.gnssC.trp_opt>TRP_EST_WET){
+        else if(PPPLibC_.gnssC.trp_opt>=TRP_EST_WET){
             EstTrpWet(humi,x,it);
+            sat_info_->trp_var=0.0001;
         }
         return zenith_trp_;
     }
@@ -89,8 +90,9 @@ namespace PPPLib{
             slant_trp_wet_[2]=grad_n*x[it+1];
             slant_trp_wet_[3]=grad_e*x[it+2];
         }
+
+        slant_trp_dry_[0]=zenith_trp_[0]*slant_trp_dry_[1];
         slant_trp_wet_[0]=slant_trp_wet_[1]*x[it];
-        sat_info_->trp_var=0.001;
     }
 
     static double Interpc(const double coef[],double lat) {
@@ -121,7 +123,7 @@ namespace PPPLib{
         };
         const double aht[]={ 2.53E-5, 5.49E-3, 1.14E-3}; /* height correction */
 
-        double y,cosy,ah[3],aw[3],dm,lat=blh_[0]*R2D,hgt=blh_[3];
+        double y,cosy,ah[3],aw[3],dm,lat=blh_[0]*R2D,hgt=blh_[2];
         int i;
 
         if(el<=0.0) {return;}
@@ -680,7 +682,7 @@ namespace PPPLib{
         double ru[3],rz[3],eu[3],ez[3],nadir,cosa;
         int i;
 
-        double *rs=sat_info->pre_pos.data();
+        double rs[3]={sat_info->pre_pos[0],sat_info->pre_pos[1],sat_info->pre_pos[2]};
         for(i=0;i<3;i++){
             ru[i]=rec_pos[i]-rs[i];
             rz[i]=-rs[i];
@@ -698,12 +700,12 @@ namespace PPPLib{
         double e[3],off[3],cosel=cos(sat_info->el_az[0]);
         int i,j,k=0;
 
-        e[0]=sin(sat_info->el_az[0])*cosel;
-        e[1]=cos(sat_info->el_az[0])*cosel;
-        e[2]=sin(sat_info->el_az[1]);
+        e[0]=sin(sat_info->el_az[1])*cosel;
+        e[1]=cos(sat_info->el_az[1])*cosel;
+        e[2]=sin(sat_info->el_az[0]);
 
         int sys=sat_info->sat.sat_.sys,ii;
-        for(i=0;i<MAX_GNSS_FRQ_NUM;i++){
+        for(i=0;i<MAX_GNSS_USED_FRQ_NUM;i++){
             if(sys==SYS_GPS||sys==SYS_BDS||sys==SYS_GAL||sys==SYS_QZS){
                 //使用GPS的接收机天线PCV近似替代
                 ii=i;
@@ -714,10 +716,9 @@ namespace PPPLib{
                 if(ii==2) ii=1+3*MAX_GNSS_FRQ_NUM;
             }
 //            for(j=0;j<3;j++) off[j]=rec_ant_[rec_idx_].pco[ii][j]+ant_del[rov_bas][j];
-            for(j=0;j<3;j++) off[j]=rec_ant_[rec_idx].pco[ii][j];
+            for(j=0;j<3;j++) off[j]=rec_ant_[rec_idx].pco[ii][j]+rec_ant_[rec_idx].rec_ant_del[rec_idx][j];
             if(rec_ant_[rec_idx].dazi!=0.0){
-                double a=-Dot(off,e,3);
-                dantr[i]=-Dot(off,e,3)+InterpAziPcv(rec_ant_[rec_idx],sat_info->el_az[0]*R2D,90-sat_info->el_az[1]*R2D,ii);
+                dantr[i]=-Dot(off,e,3)+InterpAziPcv(rec_ant_[rec_idx],sat_info->el_az[1]*R2D,90-sat_info->el_az[0]*R2D,ii);
             }
             else{
                 dantr[i]=-Dot(off,e,3)+InterpPcv(90-sat_info->el_az[1]*R2D,rec_ant_[rec_idx].pcv[ii]);
@@ -980,21 +981,22 @@ namespace PPPLib{
         return true;
     }
 
-    void cEphModel::SatPcoCorr(tSatInfoUnit *sat_info, Vector3d sat_pos, Vector3d dant) {
+    void cEphModel::SatPcoCorr(tSatInfoUnit *sat_info, Vector3d sat_pos, Vector3d& dant) {
         double erp_val[5]={0};
         Vector3d sun_pos={0,0,0},moon_pos={0,0,0};
         const tAntUnit *sat_ant=&sat_ant_[sat_info->sat.sat_.no-1];
 
+        cTime t=sat_info->t_trans.Gpst2Utc();
         SunMoonPos(sat_info->t_trans.Gpst2Utc(),erp_val,sun_pos,moon_pos);
 
         Vector3d r,ez,es,ey,ex;
         for(int i=0;i<3;i++) r[i]=-sat_pos[i];
-        if(!NormV3(r,ez)) return;
-        for(int i=0;i<3;i++) r[i]=sun_pos[i]-sun_pos[i];
-        if(!NormV3(r,es)) return;
-        CrossVec3(ez,es,r);
-        if(!NormV3(r,ey)) return;
-        CrossVec3(ey,ez,ex);
+        if(!NormV3(r,ez.data())) return;
+        for(int i=0;i<3;i++) r[i]=sun_pos[i]-sat_pos[i];
+        if(!NormV3(r,es.data())) return;
+        CrossVec3(ez,es,r.data());
+        if(!NormV3(r,ey.data())) return;
+        CrossVec3(ey,ez,ex.data());
 
         int sys=sat_info->sat.sat_.sys;
         int i=0,j=1;
@@ -1005,7 +1007,11 @@ namespace PPPLib{
         //GLO G1 G2
         //QZS L1 L2 L5
         double gamma,C1,C2;
-        if(sys==SYS_BDS){
+        if(sys==SYS_GPS){
+            i=0;j=1;
+            gamma=SQR(FREQ_GPS_L1)/SQR(FREQ_GPS_L2);
+        }
+        else if(sys==SYS_BDS){
             i=0+MAX_GNSS_FRQ_NUM;j=2+MAX_GNSS_FRQ_NUM;
             gamma=SQR(FREQ_BDS_B1)/SQR(FREQ_BDS_B3);
             if(PPPLibC_.gnssC.ac_opt==AC_COM){
@@ -1201,11 +1207,12 @@ namespace PPPLib{
         if(!PreSatPos(sat_info)||!PreSatClkCorr(sat_info)) return false;
         if(!PreSatPos(&d1E_3)||!PreSatClkCorr(&d1E_3)) return false;
 
+        sat_info->pre_vel=(d1E_3.pre_pos-sat_info->pre_pos)/1E-3;
+
         Vector3d dant(0,0,0);
         SatPcoCorr(sat_info,sat_info->pre_pos,dant);
         sat_info->pre_pos+=dant;
 
-        sat_info->pre_vel=(d1E_3.pre_pos-sat_info->pre_pos)/1E-3;
 
         if(sat_info->pre_clk[0]!=0.0){
             sat_info->pre_clk[0]=sat_info->pre_clk[0]-2.0*sat_info->pre_pos.dot(sat_info->pre_vel)/CLIGHT/CLIGHT;
@@ -1362,7 +1369,7 @@ namespace PPPLib{
         Vector3d eu;
 
         /* step1: time domain */
-        eu[0]=E_(1,0); eu[1]=E_(1,1); eu[2]=E_(2,2);
+        eu[0]=E_(2,0); eu[1]=E_(2,1); eu[2]=E_(2,2);
 
         /* step2: frequency domain, only K1 radial */
         sin2l=sin(2.0*blh_[0]);
@@ -1370,17 +1377,17 @@ namespace PPPLib{
         TideSl(eu.data(),sun_pos_.data(),GMS,blh_,dr1);
         TideSl(eu.data(),moon_pos_.data(),GMM,blh_,dr2);
 
-        tid_dr_[0][0]=dr1[0]+dr2[0]+du*E_(1,0);
-        tid_dr_[0][1]=dr1[1]+dr2[1]+du*E_(1,1);
+        tid_dr_[0][0]=dr1[0]+dr2[0]+du*E_(2,0);
+        tid_dr_[0][1]=dr1[1]+dr2[1]+du*E_(2,1);
         tid_dr_[0][2]=dr1[2]+dr2[2]+du*E_(2,2);
 
         /* eliminate permanent deformation */
         sinl=sin(blh_[0]);
         du=0.1196*(1.5*sinl*sinl-0.5);
         dn=0.0247*sin2l;
-        tid_dr_[0][0]+=du*E_(1,0)+dn*E_(1,0);
-        tid_dr_[0][1]+=du*E_(1,1)+dn*E_(0,1);
-        tid_dr_[0][2]+=du*E_(2,2)+dn*E_(2,0);
+        tid_dr_[0][0]+=du*E_(2,0)+dn*E_(1,0);
+        tid_dr_[0][1]+=du*E_(2,1)+dn*E_(1,1);
+        tid_dr_[0][2]+=du*E_(2,2)+dn*E_(1,2);
     }
 
     void cTidModel::TidOcean() {
@@ -1476,22 +1483,26 @@ namespace PPPLib{
 
         //TODO check;
         Vector3d rec_blh=Xyz2Blh(rec_xyz);
-        E_=CalcCen(rec_blh,COORD_ENU);//Cen
+        E_=CalcCen(blh_,COORD_ENU);//Cen
 
         if(PPPLibC_.gnssC.tid_opt&TID_SOLID){
             gmst_=SunMoonPos(t,erp_val_,sun_pos_,moon_pos_);
             TidSolid();
             dr+=tid_dr_[0];
+
+            TidOcean();
+            tid_dr_[1]=E_.transpose()*denu_[0];
+            dr+=tid_dr_[1];
+
+            TidPole();
+            tid_dr_[2]=E_.transpose()*denu_[1];
+            dr+=tid_dr_[2];
         }
         else if(PPPLibC_.gnssC.tid_opt&TID_OCEAN){
-            TidOcean();
-            tid_dr_[1]=E_*denu_[0];
-            dr+=tid_dr_[1];
+
         }
         else if(PPPLibC_.gnssC.tid_opt&TID_POLE){
-            TidPole();
-            tid_dr_[2]=E_*denu_[1];
-            dr+=tid_dr_[2];
+
         }
     }
 
@@ -1555,6 +1566,94 @@ namespace PPPLib{
 
     double cGnssErrCorr::SagnacCorr(Vector3d sat_xyz,Vector3d rec_xyz){
         return OMGE_GPS*(sat_xyz[0]*rec_xyz[1]-sat_xyz[1]*rec_xyz[0])/CLIGHT;
+    }
+
+    double cGnssErrCorr::ShapiroCorr(int sys, Vector3d sat_xyz, Vector3d rec_xyz) {
+        double rr=rec_xyz.norm();
+        double rs=sat_xyz.norm();
+        double l=(sat_xyz-rec_xyz).norm();
+        double mu=0.0;
+
+        switch(sys){
+            case SYS_BDS: mu=MU_BDS;break;
+            case SYS_GAL: mu=MU_GAL;break;
+            case SYS_GLO: mu=MU_GLO;break;
+            default: mu=MU_GPS;
+                break;
+        }
+        return -2.0*mu/SQR(CLIGHT)*log((rr+rs+l)/(rr+rs-l));
+    }
+
+    bool cGnssErrCorr::SatYaw(tSatInfoUnit &sat_info,Vector3d& exs,Vector3d& eys) {
+        Vector3d sun_pos(0,0,0),moon_pos;
+        double erp[5]={0};
+        cTime t=sat_info.t_tag;
+        SunMoonPos(t.Gpst2Utc(),erp,sun_pos,moon_pos);
+
+        Vector3d sat_pos,sat_vel,n,p;
+        sat_pos=sat_info.pre_pos;sat_vel=sat_info.pre_vel;
+        sat_vel[0]-=OMGE_GPS*sat_vel[1];sat_vel[1]+=OMGE_GPS*sat_vel[0];
+        CrossVec3(sat_pos,sat_vel,n.data());
+        CrossVec3(sun_pos,n,p.data());
+
+        Vector3d es,esun,en,ep;
+        if(!NormV3(sat_pos,es.data())||(!NormV3(sun_pos,esun.data()))||(!NormV3(n,en.data()))||(!NormV3(p,ep.data()))) return false;
+        double beta=PI/2.0-acos(esun.dot(en));
+        double E=acos(es.dot(ep));
+        double mu=PI/2.0+(es.dot(esun)<=0?-E:E);
+        if(mu<-PI/2.0) mu+=2.0*PI;
+        else if(mu>=PI/2.0) mu-=2.0*PI;
+
+        double yaw=0.0;
+        if(fabs(beta)<1E-12&&fabs(mu)<1E-12) yaw=PI;
+        else yaw=atan2(-tan(beta),sin(mu))+PI;
+
+        Vector3d ex;
+        CrossVec3(en,es,ex.data());
+        double cosy=cos(yaw);
+        double siny=sin(yaw);
+        for(int i=0;i<3;i++){
+            exs[i]=-siny*en[i]+cosy*ex[i];
+            eys[i]=-cosy*en[i]-siny*ex[i];
+        }
+    }
+
+    void cGnssErrCorr::PhaseWindUp(tSatInfoUnit &sat_info, Vector3d rec_xyz) {
+        Vector3d exs,eys;
+        SatYaw(sat_info,exs,eys);
+
+        Vector3d r=rec_xyz-sat_info.pre_pos;
+        Vector3d ek;
+        if(!NormV3(r,ek.data())) return;
+
+        Vector3d rec_blh=Xyz2Blh(rec_xyz);
+        Matrix3d E;
+        E=CalcCen(rec_blh,COORD_ENU);
+        Vector3d exr,eyr;
+        exr[0]=E(1,0);exr[1]=E(1,1);exr[2]=E(1,2);
+        eyr[0]=-E(0,0);eyr[1]=-E(0,1);eyr[2]=-E(0,2);
+
+        Vector3d eks,ekr;
+        CrossVec3(ek,eys,eks.data());
+        CrossVec3(ek,eyr,ekr.data());
+
+        Vector3d ds,dr;
+        for(int i=0;i<3;i++){
+            ds[i]=exs[i]-ek[i]*ek.dot(exs)-eks[i];
+            dr[i]=exr[i]-ek[i]*ek.dot(exr)+ekr[i];
+        }
+
+        double a=Norm(ds,3);
+        double b=Norm(dr,3);
+        double c=ds.dot(dr);
+        double cosp=ds.dot(dr)/(Norm(ds,3))/(Norm(dr,3));
+        if(cosp<-1.0) cosp=-1.0;
+        double ph=acos(cosp)/2.0/PI;
+        Vector3d drs;
+        CrossVec3(ds,dr,drs.data());
+        if(ek.dot(drs)<0.0) ph=-ph;
+        sat_info.phase_wp=ph+floor(sat_info.phase_wp-ph+0.5);
+
     }
 
 }

@@ -1397,7 +1397,10 @@ namespace PPPLib{
             if(!(ant=SearchAntPar(t,0,sta[i].ant_desc))){
                 return;
             }
-            else rec_ant[i]=*ant;
+            else {
+                rec_ant[i]=*ant;
+                rec_ant[i].rec_ant_del[i]=sta->del;
+            }
         }
     }
 

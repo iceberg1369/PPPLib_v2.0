@@ -468,11 +468,15 @@ namespace PPPLib {
         SAT_NO_USE=-1,
         SAT_USED=0,
         SAT_NO_PR=1,
-        SAT_NO_CP,
+        SAT_NO_CODE,
+        SAT_NO_PHASE,
         SAT_NO_PROD,
         SAT_LOW_EL,
         SAT_PRI_RES_C,
         SAT_PRI_RES_P,
+        SAT_LAR_CP_DIFF,
+        SAT_POS_RES_C,
+        SAT_POS_RES_P,
         SAT_SLIP,
     };
 
@@ -480,11 +484,14 @@ namespace PPPLib {
         "NO_USE",
         "USED",
         "NO_PR",
-        "NO_CP",
+        "NO_CODE",
+        "NO_PHASE",
         "NO_PROD",
         "LOE_EL",
         "PRIOR_RES_C",
         "PRIOR_RES_P",
+        "LAR_CP_DIFF",
+        "POST_RES",
         "SLIP",
     };
 

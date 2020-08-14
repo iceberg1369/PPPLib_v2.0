@@ -140,7 +140,7 @@ namespace PPPLib{
         bool BrdEphModel(tSatInfoUnit* sat_info);
 
         // precise
-        void SatPcoCorr(tSatInfoUnit* sat_info,Vector3d sat_pos,Vector3d dant);
+        void SatPcoCorr(tSatInfoUnit* sat_info,Vector3d sat_pos,Vector3d& dant);
         bool PreSatClkCorr(tSatInfoUnit* sat_info);
         bool PreSatPos(tSatInfoUnit* sat_info);
         bool PreEphModel(tSatInfoUnit* sat_info);
@@ -199,10 +199,15 @@ namespace PPPLib{
         ~cGnssErrCorr();
 
 
+    private:
+        bool SatYaw(tSatInfoUnit& sat_info,Vector3d& exs,Vector3d& eys);
+
     public:
         void InitGnssErrCorr(tPPPLibConf C, tNav* nav);
         void BD2MultipathModel(tSatInfoUnit* sat_info);
         double SagnacCorr(Vector3d sat_xyz,Vector3d rec_xyz);
+        double ShapiroCorr(int sys,Vector3d sat_xyz,Vector3d rec_xyz);
+        void PhaseWindUp(tSatInfoUnit& sat_info,Vector3d rec_xyz);
 
     public:
         cEphModel      eph_model_;

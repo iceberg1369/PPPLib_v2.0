@@ -7,7 +7,10 @@
 namespace PPPLib{
     cSat::cSat() {}
 
-    cSat::cSat(int sat_no) {sat_.no=sat_no;}
+    cSat::cSat(int sat_no) {
+        sat_.no=sat_no;
+        SatNo2Prn();
+    }
 
     cSat::cSat(string sat_id) {sat_.id=sat_id;}
 
@@ -48,7 +51,7 @@ namespace PPPLib{
         int prn=sat_.no;
         sat_.sys=SYS_NONE;
         if(sat_.no<=0||MAX_SAT_NUM<sat_.no){
-            LOG(ERROR)<<"satellite no. error";
+//            LOG(ERROR)<<"satellite no. error";
             return;
         }
         else if(prn<=NUM_GPS_SAT){
@@ -172,6 +175,7 @@ namespace PPPLib{
     double cGnssObsOperator::GnssObsIfComb(double obs1, double obs2, double f1, double f2) {
         double alpha=SQR(f1)/(SQR(f1)-SQR(f2)),beta=-SQR(f2)/(SQR(f1)-SQR(f2));
         double if_obs=0.0;
+        if(obs1==0.0||obs2==0.0) return 0;
 
         if_obs=obs1*alpha+beta*obs2;
         return if_obs;
@@ -670,11 +674,13 @@ namespace PPPLib{
         const double ep2000[]={ 2000,1,1,12,0,0 };
         static cTime tutc_;
         static double gmst_;
+        static Matrix3d U_;
         cTime tgps,baseTime;
         double eps,ze,th,z,t,t2,t3,dpsi,deps,gast,f[5];
         double R1[9],R2[9],R3[9];
-        Matrix3d U_,R,P,N,W,NP;
+        Matrix3d R,P,N,W,NP;
         int i;
+
 
         if (fabs(tutc.TimeDiff(tutc_.t_))<0.01) { /* read cache */
             U=U_;
@@ -685,7 +691,7 @@ namespace PPPLib{
 
         /* terrestrial time */
         tgps=tutc_;
-        tgps.Utc2Gpst();
+        tgps=tgps.Utc2Gpst();
         baseTime.Epoch2Time(ep2000);
         t=(tgps.TimeDiff(baseTime.t_)+19.0+32.184)/86400.0/36525.0;
         t2=t*t; t3=t2*t;
@@ -783,9 +789,10 @@ namespace PPPLib{
         Vector3d rs,rm;
         double gmst0;
         Matrix3d U;
+        cTime t=ut1t+erp_val[2];
 
-        SunMoonPosEci(ut1t,rs,rm);
-        Eci2Ecef(ut1t,erp_val,U,&gmst0);
+        SunMoonPosEci(t,rs,rm);
+        Eci2Ecef(t,erp_val,U,&gmst0);
 
         sun_pos=U*rs; moon_pos=U*rm;
         return gmst0;

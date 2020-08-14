@@ -12,7 +12,7 @@ using namespace PPPLib;
 
 int main(int argc, char** argv){
     string logini_path = SetLogConfPath("");
-    int log_level = SetLogLevel(32);
+    int log_level = SetLogLevel(128);
     InitLog(argc,argv,logini_path, log_level);
     tPPPLibConf C;
 
@@ -30,8 +30,8 @@ int main(int argc, char** argv){
     C.mode=MODE_SPP;
     C.mode_opt=MODE_OPT_KINE_SIM;
     C.gnssC.nav_sys=SYS_GPS;
-    C.gnssC.frq_opt=FRQ_SINGLE;
-    C.gnssC.ion_opt=ION_KLB;
+    C.gnssC.frq_opt=FRQ_DUAL;
+    C.gnssC.ion_opt=ION_IF;
     C.gnssC.ele_min=10.0;
     C.gnssC.use_doppler= true;
     C.gnssC.max_pdop=30.0;

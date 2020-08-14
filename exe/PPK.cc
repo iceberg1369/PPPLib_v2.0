@@ -30,15 +30,17 @@ int main(int argc, char** argv){
     C.mode=MODE_PPK;
     C.mode_opt=MODE_OPT_KINEMATIC;
     C.gnssC.nav_sys=SYS_GPS;
-    C.gnssC.frq_opt=FRQ_DUAL;
+    C.gnssC.frq_opt=FRQ_SINGLE;
     C.gnssC.ion_opt=ION_OFF;
     C.gnssC.trp_opt=TRP_OFF;
     C.gnssC.use_doppler=false;
     C.gnssC.ele_min=10.0;
     C.gnssC.max_pdop=30.0;
+    C.gnssC.max_out=5.0;
     C.gnssC.sample_rate=1.0;
     C.gnssC.cs_thres[0]=5.0;
     C.gnssC.cs_thres[1]=0.15;
+    C.gnssC.ait_psd[0]=0.0;
     C.gnssC.gnss_frq[SYS_INDEX_GPS][0]=GPS_L1;C.gnssC.gnss_frq[SYS_INDEX_GPS][1]=GPS_L2;C.gnssC.gnss_frq[SYS_INDEX_GPS][2]=GPS_L5;
     C.gnssC.gnss_frq[SYS_INDEX_BDS][0]=BDS_B1I;C.gnssC.gnss_frq[SYS_INDEX_BDS][1]=BDS_B2I;C.gnssC.gnss_frq[SYS_INDEX_BDS][2]=BDS_B3I;
     C.gnssC.gnss_frq[SYS_INDEX_GAL][0]=GAL_E1;C.gnssC.gnss_frq[SYS_INDEX_GAL][1]=GAL_E5a;C.gnssC.gnss_frq[SYS_INDEX_GAL][2]=GAL_E5b;

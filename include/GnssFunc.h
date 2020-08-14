@@ -93,6 +93,7 @@ namespace PPPLib{
         double   pcv[MAX_GNSS_FRQ_NUM*NSYS][80*30];
         double dazi;
         double zen1,zen2,dzen;
+        Vector3d rec_ant_del[2];
     }tAntUnit;
 
     typedef struct{
@@ -214,6 +215,8 @@ namespace PPPLib{
         Vector4d trp_wet_delay; // slant_wet,map_wet,grand_e,grand_n
         Vector2d ion_delay; // L1_slant_ion, map_ion;
         double clk_rel;
+        double sagnac;
+        double shapiro;
 
         double code_bias[MAX_GNSS_USED_FRQ_NUM];
         double bd2_mp[3];
@@ -250,6 +253,7 @@ namespace PPPLib{
 
         int outc[MAX_GNSS_USED_FRQ_NUM];
         int lock[MAX_GNSS_USED_FRQ_NUM];
+        int rejc[MAX_GNSS_USED_FRQ_NUM]; // reject flag for residual
     }tSatInfoUnit;
 
     class cGnssObsOperator {

@@ -22,6 +22,7 @@ namespace PPPLib{
         void InitEpochSatInfo(vector<tSatInfoUnit>& sat_infos);
         void UpdateSatInfo(vector<tSatInfoUnit>& sat_infos);
         void UpdateGnssObs(tPPPLibConf C,tEpochSatUnit& epoch_sat,RECEIVER_INDEX rec);
+        void CorrGnssObs(tPPPLibConf C);
         virtual int GnssObsRes(int post,tPPPLibConf C,double* x);
 
         virtual void InitSolver(tPPPLibConf C);
@@ -68,6 +69,7 @@ namespace PPPLib{
         MatrixXd H_;
         MatrixXd R_;
         MatrixXd F_; //for coupled
+        int sys_mask_[NSYS]={0};
     };
 
     class cSppSolver:public cSolver {
@@ -87,7 +89,6 @@ namespace PPPLib{
 
 
     public:
-        void CorrGnssObs();
         int GnssObsRes(int post,tPPPLibConf C,double* x) override;
         void InitSolver(tPPPLibConf C) override;
         bool SolverProcess(tPPPLibConf C) override;
@@ -119,15 +120,17 @@ namespace PPPLib{
         void Spp2Ppp();
         void PppCycSlip(tPPPLibConf C);
         void PosUpdate(tPPPLibConf C);
-        void ClkUpdate(tPPPLibConf C);
-        void TrpUpdate(tPPPLibConf C);
-        void IonUpdate(tPPPLibConf C);
-        void AmbUpdate(tPPPLibConf C);
+        void ClkUpdate(tPPPLibConf C,double tt);
+        void TrpUpdate(tPPPLibConf C,double tt);
+        void IonUpdate(tPPPLibConf C,double tt);
+        void AmbUpdate(tPPPLibConf C,double tt);
         void StateTimeUpdate(tPPPLibConf C);
         int GnssObsRes(int post,tPPPLibConf C,double *x) override;
 
+
     private:
         tPPPLibConf ppp_conf_;
+        int max_iter_=8;
 
     public:
         cSppSolver *spp_solver_;
@@ -149,7 +152,7 @@ namespace PPPLib{
     private:
         void InitSppSolver();
         void Spp2Ppk();
-        bool GnssZeroRes(tPPPLibConf C,RECEIVER_INDEX rec,vector<int>sat_idx,Vector3d rec_xyz,double* x);
+        bool GnssZeroRes(tPPPLibConf C,RECEIVER_INDEX rec,vector<int>sat_idx,double* x);
         int GnssDdRes(int post,tPPPLibConf C,vector<int>ir,vector<int>ib,vector<int>cmn_sat_no,double* x);
         bool ValidObs(int i,int nf,int f);
         bool MatchBaseObs(cTime t);

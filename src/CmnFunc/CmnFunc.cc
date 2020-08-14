@@ -766,12 +766,8 @@ namespace PPPLib{
     }
 
     int cParSetting::GetNumObsType() {
-        if(PPPLibC_.mode==MODE_SPP||PPPLibC_.mode==MODE_DGNSS||PPPLibC_.mode_opt==MODE_OPT_SPP){
-            if(PPPLibC_.mode_opt==MODE_OPT_KINEMATIC||PPPLibC_.dynamic) return 1+1; //code+doppler
-        }
-        else{
-            if(PPPLibC_.mode_opt==MODE_OPT_KINEMATIC||PPPLibC_.dynamic) return 1+1; //code+doppler+phase
-        }
+        if(PPPLibC_.mode==MODE_SPP||PPPLibC_.mode_opt==MODE_OPT_SPP) return 1;
+        else return 1+1;
     }
 
     int cParSetting::GetInsTransParNum(tPPPLibConf C) {
