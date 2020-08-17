@@ -168,6 +168,7 @@ namespace PPPLib{
         sat_info.raw_L[f]=sat_obs.L[frq_idx];
         sat_info.raw_D[f]=sat_obs.D[frq_idx];
         sat_info.raw_S[f]=sat_obs.SNR[frq_idx];
+        sat_info.LLI[f]=sat_obs.LLI[frq_idx];
         sat_info.lam[f]=CLIGHT/kGnssFreqs[sat_obs.sat.sat_.sys_idx][frq_idx];
         sat_info.frq[f]=kGnssFreqs[sat_obs.sat.sat_.sys_idx][frq_idx];
     }
@@ -396,7 +397,16 @@ namespace PPPLib{
         }
     }
 
-    void cGnssObsOperator::LliCycleSlip() {
+    void cGnssObsOperator::LliCycleSlip(tPPPLibConf C, tSatInfoUnit& sat_info,int nf,double tt) {
+        int f;
+
+        for(f=0;f<nf;f++){
+            if((sat_info.raw_L[f]==0.0||sat_info.LLI[f]==0)||fabs(tt)<DTTOL){
+                continue;
+            }
+
+
+        }
 
     }
 
@@ -476,7 +486,7 @@ namespace PPPLib{
 
     double GnssMeasVar(tPPPLibConf C,GNSS_OBS obs_type,tSatInfoUnit sat_info){
         //GPS:BD2_GEO:BD2_IGSO_MEO:BD3:GAL:GLO:QZS=16:1:4:16:16:16
-        double fact=obs_type==GNSS_OBS_CODE?100.0:1.0;
+        double fact=obs_type==GNSS_OBS_CODE?300.0:1.0;
         int sys=sat_info.sat.sat_.sys;
         int prn=sat_info.sat.sat_.prn;
 
@@ -503,7 +513,7 @@ namespace PPPLib{
         double a=0.003,b=0.003;
         double sin_el=sin(sat_info.el_az[0]);
         if(obs_type==GNSS_OBS_DOPPLER) a=b=10;
-        var=SQR(a)+SQR(b/sin_el);
+        var=2.0*(SQR(a)+SQR(b/sin_el));
 #endif
 
 

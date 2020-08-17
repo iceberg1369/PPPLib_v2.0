@@ -58,6 +58,7 @@ namespace PPPLib{
 
     int Str2Int(const string src_str,int &dst_num){
         int i;
+        if(src_str.empty()) dst_num=0;
         for (i=0; i<src_str.length(); i++){
             if (src_str[i]<='9'&&src_str[i]>='0') break;
         }

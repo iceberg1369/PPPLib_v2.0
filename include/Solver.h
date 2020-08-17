@@ -11,6 +11,7 @@
 #include "AdjFunc.h"
 #include "OutSol.h"
 
+using namespace Eigen;
 namespace PPPLib{
 
     class cSolver {
@@ -32,7 +33,7 @@ namespace PPPLib{
         virtual bool SolutionUpdate();
 
         void InitFullPx(tPPPLibConf C);
-        void InitX(double xi,double var,int idx);
+        void InitX(double xi,double var,int idx,double *x,double *xp);
         Eigen::MatrixXd InitQ(tPPPLibConf,double dt);
 
     public:

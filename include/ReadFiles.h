@@ -120,7 +120,7 @@ namespace PPPLib {
             bool SortEpochSatData(tEpochSatUnit& epoch_data);
             int DecodeEpoch(cTime& t,int& obs_flag);
             bool DecodeEpochSatObs(tSatObsUnit& obs);
-            int ReadObsBody();
+            int ReadObsBody(tEpochSatUnit& epoch_sat_data);
 
         public:
             void SetGnssTimeSpan(cTime* ts,cTime* te);

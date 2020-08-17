@@ -30,11 +30,11 @@ int main(int argc, char** argv){
     C.mode=MODE_PPK;
     C.mode_opt=MODE_OPT_KINEMATIC;
     C.gnssC.nav_sys=SYS_GPS;
-    C.gnssC.frq_opt=FRQ_SINGLE;
+    C.gnssC.frq_opt=FRQ_DUAL;
     C.gnssC.ion_opt=ION_OFF;
-    C.gnssC.trp_opt=TRP_OFF;
+    C.gnssC.trp_opt=TRP_SAAS;
     C.gnssC.use_doppler=false;
-    C.gnssC.ele_min=10.0;
+    C.gnssC.ele_min=15.0;
     C.gnssC.max_pdop=30.0;
     C.gnssC.max_out=5.0;
     C.gnssC.sample_rate=1.0;

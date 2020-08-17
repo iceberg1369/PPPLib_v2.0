@@ -196,7 +196,8 @@ namespace PPPLib{
         double raw_P[MAX_GNSS_USED_FRQ_NUM];        // L1 L2 L5
         double raw_L[MAX_GNSS_USED_FRQ_NUM];
         double raw_D[MAX_GNSS_USED_FRQ_NUM];
-        double raw_S[MAX_GNSS_USED_FRQ_NUM];
+        unsigned char raw_S[MAX_GNSS_USED_FRQ_NUM];
+        unsigned char LLI[MAX_GNSS_USED_FRQ_NUM];
         double csc_P[MAX_GNSS_USED_FRQ_NUM];
         double cor_P[MAX_GNSS_USED_FRQ_NUM];        // corrected code bias BDS satellite-specific multipath
         double cor_L[MAX_GNSS_USED_FRQ_NUM];        // corrected phase bias for PPP-AR
@@ -275,7 +276,7 @@ namespace PPPLib{
 
         void MwCycleSlip(tPPPLibConf C,double sample_dt,double dt,tSatInfoUnit* sat_info,tSatInfoUnit* base_sat,tTime last_time);
         void GfCycleSlip(tPPPLibConf C,double sample_dt,double dt,tSatInfoUnit* sat_info,tSatInfoUnit* base_sat);
-        void LliCycleSlip();
+        void LliCycleSlip(tPPPLibConf C, tSatInfoUnit& sat_info,int nf,double tt);
         void SmoothMw(tPPPLibConf C,tSatInfoUnit* sat_info,tSatInfoUnit* base_sat);
 
     };

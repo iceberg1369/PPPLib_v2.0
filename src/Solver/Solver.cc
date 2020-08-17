@@ -42,6 +42,7 @@ namespace PPPLib{
         for(int i=0;i<sat_infos.size();i++){
             previous_sat_info_[sat_infos.at(i).sat.sat_.no-1]=sat_infos.at(i);
         }
+
     }
 
     void cSolver::UpdateGnssObs(tPPPLibConf C,tEpochSatUnit& epoch_sat_obs,RECEIVER_INDEX rec) {
@@ -156,10 +157,11 @@ namespace PPPLib{
         }
     }
 
-    void cSolver::InitX(double xi, double var, int idx) {
-        full_x_[idx]=xi;
+    void cSolver::InitX(double xi, double var, int idx,double *x,double *p) {
+        x[idx]=xi;
         for(int j=0;j<num_full_x_;j++){
-            full_Px_(idx,j)=full_Px_(j,idx)=idx==j?var:0.0;
+//            full_Px_(idx,j)=full_Px_(j,idx)=idx==j?var:0.0;
+            p[idx+j*num_full_x_]=p[j+idx*num_full_x_]=idx==j?var:0.0;
         }
     }
 
@@ -495,6 +497,7 @@ namespace PPPLib{
 
                 omc=cor_P-(r+sag_err+(rec_clk-CLIGHT*sat_info->brd_clk[0])+sat_info->trp_dry_delay[0]+sat_info->trp_wet_delay[0]+sat_info->ion_delay[0]);
                 if(epoch_idx_>10&&post==0&&fabs(omc)>5.0) have_large_res=true;
+                double a=GnssMeasVar(C,GNSS_OBS_CODE,*sat_info);
                 meas_var=GnssMeasVar(C,GNSS_OBS_CODE,*sat_info)+sat_info->brd_eph_var+sat_info->trp_var+sat_info->ion_var;
                 omcs.push_back(omc);
                 meas_var_vec.push_back(meas_var);
@@ -526,16 +529,30 @@ namespace PPPLib{
         if(epoch_idx_>=10&&post==0&&have_large_res){
             double mean_omcs=VectorMean(omcs);
             vector<double>new_omcs;
+            vector<double>large_omcs;
+            vector<int>larger_idx;
             for(int i=0;i<omcs.size();i++){
                 new_omcs.push_back(fabs(omcs[i]-mean_omcs));
             }
-            double mean_new_omcs=VectorMean(new_omcs)*0.6;
+            double mean_new_omcs=VectorMean(new_omcs)*0.7;
             for(int i=0;i<omcs.size();i++){
+                double aa=mean_omcs-3*mean_new_omcs;
+                double bb=mean_omcs+3*mean_new_omcs;
                 if(omcs[i]<mean_omcs-3*mean_new_omcs||omcs[i]>mean_omcs+3*mean_new_omcs){
-                    LOG(DEBUG)<<epoch_sat_info_collect_[0].t_tag.GetTimeStr(1)<<" "<<epoch_sat_info_collect_[sat_idx[i]].sat.sat_.id<<" DETECTING OUTIERS, omc="<<omcs[i];
-                    epoch_sat_info_collect_[sat_idx[i]].stat=SAT_PRI_RES_C;
+//                    LOG(DEBUG)<<epoch_sat_info_collect_[0].t_tag.GetTimeStr(1)<<" "<<epoch_sat_info_collect_[sat_idx[i]].sat.sat_.id<<" DETECTING OUTIERS, omc="<<omcs[i];
+//                    epoch_sat_info_collect_[sat_idx[i]].stat=SAT_PRI_RES_C;
+                    large_omcs.push_back(omcs[i]);
+                    larger_idx.push_back(i);
                 }
             }
+
+            if(large_omcs.size()>0){
+                auto max_omc=max_element(large_omcs.begin(),large_omcs.end());
+                int idx_max_omc=distance(begin(large_omcs),max_omc);
+                epoch_sat_info_collect_[sat_idx[larger_idx[idx_max_omc]]].stat=SAT_PRI_RES_C;
+                LOG(DEBUG)<<epoch_sat_info_collect_[0].t_tag.GetTimeStr(1)<<" "<<epoch_sat_info_collect_[sat_idx[larger_idx[idx_max_omc]]].sat.sat_.id<<" DETECTING OUTIERS, omc="<<large_omcs[idx_max_omc];
+            }
+            new_omcs.clear();large_omcs.clear();larger_idx.clear();
         }
 #endif
 
@@ -577,10 +594,12 @@ namespace PPPLib{
             stat=lsq_.Adjustment(omc_L_,H_,R_,x,Px,num_L_,num_full_x_);
 
             if(stat){
+                full_x_=x;
+                full_Px_=Px;
                 valid_flag = ValidateSol(C);
                 if(valid_flag){
-                    full_x_=x;
-                    full_Px_=Px;
+
+                    ppplib_sol_.stat=SOL_SPP;
                 }
                 else{
                     ppplib_sol_.stat=SOL_NONE;
@@ -729,8 +748,8 @@ namespace PPPLib{
             UpdateGnssObs(C,epoch_sat_obs_,REC_ROVER);
             InitEpochSatInfo(epoch_sat_info_collect_);
 
-            if(SolverEpoch()){
 
+            if(SolverEpoch()){
                 SolutionUpdate();
                 sprintf(buff,"%s PPP SOLVE SUCCESS POS: %14.3f %14.3f %14.3f VEL: %6.3f %6.3f %6.3f PDOP: %3.1f TOTAL SAT: %3d USED SAT: %3d",
                         ppplib_sol_.t_tag.GetTimeStr(1).c_str(),ppplib_sol_.pos[0],ppplib_sol_.pos[1],ppplib_sol_.pos[2],ppplib_sol_.vel[0],ppplib_sol_.vel[1],ppplib_sol_.vel[2],
@@ -759,8 +778,16 @@ namespace PPPLib{
             }
 
             CorrGnssObs(ppp_conf_);
+            long t1=clock();
+            PppCycSlip(ppp_conf_);
+            StateTimeUpdate(ppp_conf_);
+            long t2=clock();
+            double t=(double)(t2-t1)/CLOCKS_PER_SEC;
+//            cout<<t<<endl;
 
             if(Estimator(ppp_conf_)){
+                long t2=clock();
+                double t=(double)(t2-t1)/CLOCKS_PER_SEC;
                 epoch_ok_++;
                 LOG(DEBUG)<<epoch_sat_obs_.obs_time.GetTimeStr(1)<<" PPP SOLVE SUCCESS ";
                 return true;
@@ -784,14 +811,6 @@ namespace PPPLib{
 
     bool cPppSolver::Estimator(tPPPLibConf C) {
 
-        // clock jump
-
-        // cycle slip
-        PppCycSlip(C);
-
-        // state time_update;
-        StateTimeUpdate(C);
-
         // residuals
         VectorXd x=full_x_;
         MatrixXd Px=full_Px_;
@@ -811,6 +830,13 @@ namespace PPPLib{
             else{
                 full_x_=x;
                 full_Px_=Px;
+                for(int j=0;j<epoch_sat_info_collect_.size();j++){
+                    if(epoch_sat_info_collect_.at(j).stat!=SAT_USED) continue;
+                    for(int k=0;k<3;k++){
+                        epoch_sat_info_collect_.at(j).outc[k]=0;
+                        epoch_sat_info_collect_.at(j).lock[k]++;
+                    }
+                }
                 return true;
             }
 
@@ -848,7 +874,7 @@ namespace PPPLib{
             for(int i=0;i<MAX_SAT_NUM;i++){
                 if(previous_sat_info_[i].outc[f]>5){
                     ia=para_.IndexAmb(f,i+1);
-                    InitX(0.0,0.0,ia);
+                    InitX(0.0,0.0,ia,full_x_.data(),full_Px_.data());
                 }
             }
 
@@ -880,7 +906,7 @@ namespace PPPLib{
 
                 if(bias[i]==0.0||(full_x_[ia]!=0.0&&!slip[i])) continue;
 
-                InitX(bias[i],SQR(60.0),ia);
+                InitX(bias[i],SQR(60.0),ia,full_x_.data(),full_Px_.data());
                 LOG(DEBUG)<<epoch_sat_info_collect_.at(i).t_tag.GetTimeStr(1)<<" "<<epoch_sat_info_collect_.at(i).sat.sat_.id<<" L"<<f+1<<" AMBIGUITY INITIALIZED "<<bias[i];
             }
         }
@@ -906,7 +932,7 @@ namespace PPPLib{
                 ii=para_.IndexIon(sat_info->sat.sat_.no);
                 if(sat_info->cor_P[0]==0.0||sat_info->cor_P[1]==0.0) continue;
                 ion=(sat_info->cor_P[0]-sat_info->cor_P[1])/(1.0-SQR(sat_info->lam[1]-sat_info->lam[0]))/sat_info->ion_delay[1];
-                InitX(ion,SQR(60.0),ii);
+                InitX(ion,SQR(60.0),ii,full_x_.data(),full_Px_.data());
             }
             else{
                 tt=spp_solver_->ppplib_sol_.t_tag.TimeDiff(previous_sat_info_[sat_info->sat.sat_.no-1].t_tag.t_);
@@ -949,12 +975,12 @@ namespace PPPLib{
 
         if(init){
             for(int i=0;i<NSYS;i++)
-                InitX(spp_solver_->ppplib_sol_.clk_error[i],SQR(60.0),ic+i);
+                InitX(spp_solver_->ppplib_sol_.clk_error[i],SQR(60.0),ic+i,full_x_.data(),full_Px_.data());
         }
         else{
             if(spp_solver_->ppplib_sol_.clk_error[SYS_INDEX_GPS]!=0.0){
                 // GPS clock reinitialize
-                InitX(spp_solver_->ppplib_sol_.clk_error[SYS_INDEX_GPS],SQR(60.0),ic);
+                InitX(spp_solver_->ppplib_sol_.clk_error[SYS_INDEX_GPS],SQR(60.0),ic,full_x_.data(),full_Px_.data());
 
                 // BDS,GAL,GLO,QZS ISB modeling
                 for(int i=1;i<NSYS;i++){
@@ -963,21 +989,21 @@ namespace PPPLib{
                 return ;
             }
             else if(ppplib_sol_.clk_error[SYS_INDEX_BDS]!=0.0){
-                InitX(spp_solver_->ppplib_sol_.clk_error[SYS_INDEX_BDS],SQR(60.0),ic);
+                InitX(spp_solver_->ppplib_sol_.clk_error[SYS_INDEX_BDS],SQR(60.0),ic,full_x_.data(),full_Px_.data());
                 for(int i=2;i<NSYS;i++){
                     full_Px_(ic+i,ic+i)+=SQR(psd)*tt;
                 }
                 return ;
             }
             else if(ppplib_sol_.clk_error[SYS_INDEX_GAL]!=0.0){
-                InitX(spp_solver_->ppplib_sol_.clk_error[SYS_INDEX_GAL],SQR(60.0),ic);
+                InitX(spp_solver_->ppplib_sol_.clk_error[SYS_INDEX_GAL],SQR(60.0),ic,full_x_.data(),full_Px_.data());
                 for(int i=3;i<NSYS;i++){
                     full_Px_(ic+i,ic+i)+=SQR(psd)*tt;
                 }
                 return ;
             }
             else if(ppplib_sol_.clk_error[SYS_INDEX_GLO]!=0.0){
-                InitX(spp_solver_->ppplib_sol_.clk_error[SYS_INDEX_GLO],SQR(60.0),ic);
+                InitX(spp_solver_->ppplib_sol_.clk_error[SYS_INDEX_GLO],SQR(60.0),ic,full_x_.data(),full_Px_.data());
                 for(int i=4;i<NSYS;i++){
                     full_Px_(ic+i,ic+i)+=SQR(psd)*tt;
                 }
@@ -1029,6 +1055,7 @@ namespace PPPLib{
 
         //amb
         AmbUpdate(C,tt);
+
     }
 
     void cPppSolver::InitSppSolver() {
@@ -1054,7 +1081,6 @@ namespace PPPLib{
         for(int i=0;i<epoch_sat_info_collect_.size();i++){
             sat_info=&epoch_sat_info_collect_.at(i);
 
-            gnss_obs_operator_.LliCycleSlip();
             if(C.gnssC.frq_opt>FRQ_SINGLE){
                 gnss_obs_operator_.MwCycleSlip(C,C.gnssC.sample_rate,dt,sat_info, nullptr,previous_sat_info_[sat_info->sat.sat_.no-1].t_tag.t_);
                 gnss_obs_operator_.GfCycleSlip(C,C.gnssC.sample_rate,dt,sat_info, nullptr);
@@ -1098,17 +1124,19 @@ namespace PPPLib{
 //            if(epoch_idx_==734&&sat_info->sat.sat_.no==3) continue;
 
             if(sat_info->stat!=SAT_USED&&sat_info->stat!=SAT_SLIP){
-//                LOG(WARNING)<<sat_info->t_tag.GetTimeStr(1)<<" "<<sat_info->sat.sat_.id<<" EXCLUDE BY "<<kGnssSatStatStr[sat_info->stat+1]<<" el= "<<sat_info->el_az[0]*R2D;
+                LOG(WARNING)<<sat_info->t_tag.GetTimeStr(1)<<" "<<sat_info->sat.sat_.id<<" EXCLUDE BY "<<kGnssSatStatStr[sat_info->stat+1]<<" el= "<<sat_info->el_az[0]*R2D;
                 continue;
             }
 
             if((r=GeoDist(sat_info->pre_pos,rover_xyz,sig_vec))<=0.0){
                 LOG(WARNING)<<sat_info->t_tag.GetTimeStr(1)<<" "<<sat_info->sat.sat_.id<<" S_R RANGE WRONG";
+                sat_info->stat=SAT_NO_USE;
                 continue;
             }
 
             if(SatElAz(rover_blh,sig_vec,sat_info->el_az)<C.gnssC.ele_min*D2R){
                 LOG(WARNING)<<sat_info->t_tag.GetTimeStr(1)<<" "<<sat_info->sat.sat_.id<<" S_R RANGE WRONG";
+                sat_info->stat=SAT_NO_USE;
                 continue;
             }
 
@@ -1182,7 +1210,7 @@ namespace PPPLib{
                 rec_clk=x[para_.IndexClk(SYS_INDEX_GPS)];
                 sat_clk=sat_info->pre_clk[0]*CLIGHT;
                 trp_del=sat_info->trp_dry_delay[0]+sat_info->trp_wet_delay[0];
-                ion_del=sat_info->ion_delay[0];
+                ion_del=0.0;
                 phw=0.0;
                 cbias=0.0;
                 alpha=SQR(sat_info->frq[0])/(SQR(sat_info->frq[0])-SQR(sat_info->frq[1]));
@@ -1232,8 +1260,6 @@ namespace PPPLib{
 
                 omcs.push_back(omc);
                 meas_var_vec.push_back(meas_var);
-                sat_info->outc[frq]=0;
-                sat_info->lock[frq]++;
 
                 if(post&&fabs(omc)>sqrt(meas_var)*10.0){
                     have_larger_res=true;
@@ -1350,6 +1376,7 @@ namespace PPPLib{
             UpdateSatInfo(epoch_sat_info_collect_);
             epoch_sat_info_collect_.clear();
             base_sat_info_collect_.clear();
+            rover_res.clear();base_res.clear();
         }
 
         LOG(INFO)<<"TOTAL EPOCH: "<<rover_obs_.epoch_num<<", SOLVE SUCCESS EPOCH: "<<epoch_ok_<<", SOLVE FAILED EPOCH: "<<epoch_fail_;
@@ -1396,8 +1423,8 @@ namespace PPPLib{
         vector<int>ir,ib,cmn_sat_no;
         SelectCmnSat(C,ir,ib,cmn_sat_no);
         // cycle slip
-        PpkCycleSlip(C,ir,ib,cmn_sat_no);
-        // state time_update;
+//        PpkCycleSlip(C,ir,ib,cmn_sat_no);
+        // state time_update
         StateTimeUpdate(C,ir,ib,cmn_sat_no);
         // zero residual for base and rover
         if(!GnssZeroRes(C,REC_BASE,ib,full_x_.data())){
@@ -1407,28 +1434,26 @@ namespace PPPLib{
         VectorXd x=full_x_;
         MatrixXd Px=full_Px_;
         Vector3d rover_xyz(full_x_[0],full_x_[1],full_x_[2]);
-        for(int iter=0;iter<3;iter++){
+        for(int iter=0;iter<1;iter++){
             if(!GnssZeroRes(C,REC_ROVER,ir,x.data())){
                 break;
             }
 
-            if(GnssDdRes(0,C,ir,ib,cmn_sat_no,x.data())){
-
+            if(!GnssDdRes(0,C,ir,ib,cmn_sat_no,x.data())){
+                LOG(WARNING)<<epoch_sat_info_collect_[0].t_tag.GetTimeStr(1)<<" "<<"MAKE DOUBLE DIFFERENCE RESIDUAL FAILED";
+                return false;
             }
 
             if(!kf_.Adjustment(omc_L_,H_,R_,x,Px,num_L_,num_full_x_)){
-                ppplib_sol_.stat=SOL_NONE;
-                break;
+                ppplib_sol_.stat=SOL_SPP;
+                return false;
             }
 
             if(GnssZeroRes(C,REC_ROVER,ir,x.data())){
                 GnssDdRes(0,C,ir,ib,cmn_sat_no,x.data());
-                ppplib_sol_.t_tag=epoch_sat_info_collect_[0].t_tag;
-                ppplib_sol_.pos[0]=x[0];
-                ppplib_sol_.pos[1]=x[1];
-                ppplib_sol_.pos[2]=x[2];
                 full_x_=x;
                 full_Px_=Px;
+                ppplib_sol_.stat=SOL_PPK;
                 for(int j=0;j<epoch_sat_info_collect_.size();j++){
                     if(epoch_sat_info_collect_.at(j).stat!=SAT_USED) continue;
                     for(int k=0;k<3;k++){
@@ -1436,19 +1461,36 @@ namespace PPPLib{
                         epoch_sat_info_collect_.at(j).lock[k]++;
                     }
                 }
-
-//                break;
+            }
+            else{
+                ppplib_sol_.stat=SOL_SPP;
+                return false;
             }
         }
+
+        //PPK-AR
+        if(ppplib_sol_.stat==SOL_PPK){
+//            ppplib_sol_.stat=SOL_PPK_AR;
+        }
+        else{
+            ppplib_sol_.stat=SOL_PPK;
+
+        }
+
         ir.clear();ib.clear();cmn_sat_no.clear();
     }
 
     bool cPpkSolver::SolutionUpdate() {
-        int num_pos=para_.NumPos();
-        for(int i=0;i<num_pos;i++) ppplib_sol_.pos[i]=full_x_[i];
-        int num_clk=para_.NumClk();
-        for(int i=para_.IndexClk(SYS_INDEX_GPS);i<para_.IndexClk(SYS_INDEX_GPS)+num_clk;i++) ppplib_sol_.clk_error[i-para_.IndexClk(SYS_INDEX_GPS)]=full_x_[i];
+        if(ppplib_sol_.stat==SOL_SPP) return false;
+        else if(ppplib_sol_.stat==SOL_PPK){
+            ppplib_sol_.t_tag=epoch_sat_info_collect_[0].t_tag;
+            int num_pos=para_.NumPos();
+            for(int i=0;i<num_pos;i++) ppplib_sol_.pos[i]=full_x_[i];
+        }
+        else if(ppplib_sol_.stat==SOL_PPK_AR){
 
+        }
+        for(int i=0;i<3;i++) spp_solver_->full_x_[i]=full_x_[i];
         sol_collect_.push_back(ppplib_sol_);
     }
 
@@ -1458,6 +1500,7 @@ namespace PPPLib{
     }
 
     void cPpkSolver::Spp2Ppk() {
+        spp_solver_->SolutionUpdate();
         epoch_sat_info_collect_.clear();
         epoch_sat_info_collect_=spp_solver_->epoch_sat_info_collect_;
         spp_solver_->epoch_sat_info_collect_.clear();
@@ -1486,6 +1529,7 @@ namespace PPPLib{
         int num_used_frq=para_.GetGnssUsedFrqs();
         int num_used_obs_type=para_.GetNumObsType();
         if(num_used_frq<=0) return false;
+        int nf=num_used_frq*num_used_obs_type;
 
         rover_res.resize(sat_idx.size()*num_used_frq*num_used_obs_type,0.0);
         base_res.resize(sat_idx.size()*num_used_frq*num_used_obs_type,0.0);
@@ -1508,41 +1552,43 @@ namespace PPPLib{
                 continue;
             }
 
-            gnss_err_corr_.trp_model_.InitSatInfo(sat_info,&rover_blh);
-
-            gnss_err_corr_.trp_model_.UpdateSatInfo();
-            gnss_err_corr_.trp_model_.GetTrpError(0.7,x,para_.IndexTrp());
-            gnss_err_corr_.ion_model_.InitSatInfo(sat_info,&rover_blh);
-            gnss_err_corr_.ion_model_.GetIonError();
-            gnss_err_corr_.ion_model_.UpdateSatInfo();
+            r+=gnss_err_corr_.SagnacCorr(sat_info->brd_pos,rec_xyz);
+//            gnss_err_corr_.trp_model_.InitSatInfo(sat_info,&rover_blh);
+//            gnss_err_corr_.trp_model_.GetTrpError(0.0,x,para_.IndexTrp());
+//            gnss_err_corr_.trp_model_.UpdateSatInfo();
+//            gnss_err_corr_.ion_model_.InitSatInfo(sat_info,&rover_blh);
+//            gnss_err_corr_.ion_model_.GetIonError();
+//            gnss_err_corr_.ion_model_.UpdateSatInfo();
 //            gnss_err_corr_.ant_model_.SatPcvCorr(sat_info,rover_blh, nullptr);
 //            gnss_err_corr_.ant_model_.RecAntCorr(sat_info, nullptr,REC_ROVER);
 
-            int obs_type,frq;
+            int obs_code,frq;
             for(int f=0;f<num_used_frq*num_used_obs_type;f++){
                 //f%num_used_obs_type==0, L, ==1 P, ==2 D,
                 //f/num_used_obs_type==1, f1,==2 f2,==3 f3
-                frq=f/num_used_obs_type;
-                obs_type=f%num_used_obs_type;
+                frq=f>=num_used_frq?f-num_used_frq:f;
+                obs_code=f<num_used_frq?0:1;
 
                 //ionosphere-free
                 if(C.gnssC.ion_opt==ION_IF){
-                    meas=obs_type==GNSS_OBS_CODE?sat_info->cor_if_P[frq]:(obs_type==GNSS_OBS_PHASE?sat_info->cor_if_L[frq]:sat_info->cor_D[frq]);
+//                    meas=obs_type==GNSS_OBS_CODE?sat_info->cor_if_P[frq]:(obs_type==GNSS_OBS_PHASE?sat_info->cor_if_L[frq]:sat_info->cor_D[frq]);
+                    meas=obs_code?sat_info->cor_if_P[frq]:sat_info->cor_if_L[frq];
                 }
                     //uncombined and undifference
                 else{
-                    meas=obs_type==GNSS_OBS_CODE?sat_info->raw_P[frq]:(obs_type==GNSS_OBS_PHASE?sat_info->raw_L[frq]*sat_info->lam[frq]:sat_info->cor_D[frq]);
+                    meas=obs_code?sat_info->raw_P[frq]:sat_info->raw_L[frq]*sat_info->lam[frq];
+//                    meas=obs_type==GNSS_OBS_CODE?sat_info->raw_P[frq]:(obs_type==GNSS_OBS_PHASE?sat_info->raw_L[frq]*sat_info->lam[frq]:sat_info->cor_D[frq]);
                 }
 
                 if(meas==0.0) {
-                    LOG(DEBUG)<<sat_info->t_tag.GetTimeStr(1)<<" "<<(rec==REC_BASE?"BASE":"ROVER")<<" "<<sat_info->sat.sat_.id<<" MISSING "<<(obs_type==GNSS_OBS_CODE?"P":"L")<<frq+1;
+                    LOG(DEBUG)<<sat_info->t_tag.GetTimeStr(1)<<" "<<(rec==REC_BASE?"BASE":"ROVER")<<" "<<sat_info->sat.sat_.id<<" MISSING "<<(obs_code?"P":"L")<<frq+1;
                     continue;
                 }
 
                 double sat_clk=C.gnssC.eph_opt==EPH_BRD?sat_info->brd_clk[0]*CLIGHT:sat_info->pre_clk[0]*CLIGHT;
                 double trp_del=sat_info->trp_dry_delay[0]+sat_info->trp_wet_delay[0];
                 double ion_del=sat_info->ion_delay[0];
-                omc=meas-(r-sat_clk+trp_del+ion_del);
+                omc=meas-(r-sat_clk);
                 res->at(i*num_used_frq*num_used_obs_type+f)=omc;
             }
         }
@@ -1557,10 +1603,10 @@ namespace PPPLib{
 
         int num_used_frq=para_.GetGnssUsedFrqs();
         int num_used_obs_type=para_.GetNumObsType();
-        if(num_used_frq<=0) return 0;
+        if(num_used_frq<=0) return false;
 
         int nf=num_used_frq*num_used_obs_type,ref_sat_idx,j;
-        int frq,obs_type,num_cp=0,nobs[NSYS][nf],iobs=0;
+        int frq,obs_code,nobs[NSYS][nf],iobs=0;
         double omc;
         vector<double> omcs,H,Ri,Rj,R;
         tSatInfoUnit* sat_info= nullptr, *ref_sat_info= nullptr;
@@ -1575,13 +1621,13 @@ namespace PPPLib{
 
             for(int ifrq=0;ifrq<nf;ifrq++){
 
-                frq=ifrq/num_used_obs_type;
-                obs_type=ifrq%num_used_obs_type;
+                frq=ifrq>=num_used_frq?ifrq-num_used_frq:ifrq;
+                obs_code=ifrq<num_used_frq?0:1;
 
                 for(j=0,ref_sat_idx=-1;j<ir.size();j++){
                     int sys=epoch_sat_info_collect_.at(ir[j]).sat.sat_.sys_idx;
                     if(sys!=isys) continue;
-                    if(!ValidObs(j,nf,ifrq)) continue;
+                    if(!ValidObs(j,num_used_frq,ifrq)) continue;
                     if(ref_sat_idx<0||epoch_sat_info_collect_.at(ir[ref_sat_idx]).el_az[0]<epoch_sat_info_collect_.at(ir[j]).el_az[0]) ref_sat_idx=j;
                 }
                 if(ref_sat_idx<0) continue;
@@ -1591,10 +1637,12 @@ namespace PPPLib{
                     if(isat==ref_sat_idx) continue;
                     sat_info=&epoch_sat_info_collect_[ir[isat]];
                     ref_sat_info=&epoch_sat_info_collect_[ir[ref_sat_idx]];
+                    if(sat_info->stat!=SAT_USED) continue;
                     int sys=epoch_sat_info_collect_.at(ir[isat]).sat.sat_.sys_idx;
                     if(sys!=isys) continue;
-                    if(!ValidObs(isat,nf,ifrq)){
-                        LOG(DEBUG)<<epoch_sat_info_collect_.at(ir[isat]).sat.sat_.id<<" MISSING "<<(obs_type==GNSS_OBS_CODE?"P":"L")<<frq+1;
+                    if(!ValidObs(isat,num_used_frq,ifrq)){
+//                        LOG(DEBUG)<<epoch_sat_info_collect_.at(ir[isat]).sat.sat_.id<<" MISSING "<<(obs_code?"P":"L")<<frq+1;
+                        sat_info->stat=SAT_NO_USE;
                         continue;
                     }
 
@@ -1610,18 +1658,20 @@ namespace PPPLib{
                     if(C.gnssC.trp_opt>=TRP_EST_WET){
 
                     }
-                    if(obs_type==GNSS_OBS_PHASE){
+                    double ambi=0.0,ambj=0.0;
+                    if(!obs_code){
                         int ia=para_.IndexAmb(frq,sat_info->sat.sat_.no);
                         int ref_ia=para_.IndexAmb(frq,ref_sat_info->sat.sat_.no);
                         if(C.gnssC.ion_opt!=ION_IF){
-                            omcs.back()-=ref_sat_info->lam[frq]*full_x_[ref_ia]-sat_info->lam[frq]*full_x_[ia];
+                            ambi=ref_sat_info->lam[frq]*x[ref_ia];ambj=sat_info->lam[frq]*x[ia];
+                            omcs.back()-=ambi-ambj;
                             if(!post){
                                 H[ref_ia+num_full_x_*num_L_]=ref_sat_info->lam[frq];
                                 H[ia+num_full_x_*num_L_]=-sat_info->lam[frq];
                             }
                         }
                         else{
-                            omcs.back()-=full_x_[ref_ia]-full_x_[ia];
+                            omcs.back()-=x[ref_ia]-x[ia];
                             if(!post){
                                 H[ref_ia+num_full_x_*num_L_]=1.0;
                                 H[ia+num_full_x_*num_L_]=-1.0;
@@ -1629,29 +1679,29 @@ namespace PPPLib{
                         }
                     }
 
-                    sprintf(buff,"%8.3f - %8.3f - %8.3f - %8.3f = %8.3f",rover_res[ref_sat_idx*nf+ifrq],base_res[ref_sat_idx*nf+ifrq],rover_res[isat*nf+ifrq],base_res[isat*nf+ifrq],omcs.back());
-                    LOG(DEBUG)<<(obs_type==GNSS_OBS_CODE?"P":"L")<<frq+1<<": (ROVER_"<<ref_sat_info->sat.sat_.id<<" - BASE_"<<ref_sat_info->sat.sat_.id<<" - ROVER_"<<sat_info->sat.sat_.id<<" - BASE_"<<sat_info->sat.sat_.id<<") "
+                    sprintf(buff,"(%8.4f - %8.4f)-(%8.4f - %8.4f)-(%8.4f-%8.4f)=%8.4f",rover_res[ref_sat_idx*nf+ifrq],base_res[ref_sat_idx*nf+ifrq],rover_res[isat*nf+ifrq],base_res[isat*nf+ifrq],ambi,ambj,omcs.back());
+                    LOG(DEBUG)<<(obs_code?"P":"L")<<frq+1<<": (ROVER_"<<ref_sat_info->sat.sat_.id<<"-BASE_"<<ref_sat_info->sat.sat_.id<<")-(ROVER_"<<sat_info->sat.sat_.id<<"-BASE_"<<sat_info->sat.sat_.id<<")-amb"
                               <<" = "<<buff;
 
                     if(!post){
-                        if(obs_type==GNSS_OBS_CODE){
+                        if(obs_code){
                             sat_info->prior_res_P[frq]=omcs.back();
                         }
-                        else if(obs_type==GNSS_OBS_PHASE){
+                        else if(!obs_code){
                             sat_info->prior_res_L[frq]=omcs.back();
                         }
                     }
                     else{
-                        if(obs_type==GNSS_OBS_CODE){
+                        if(obs_code){
                             sat_info->post_res_P[frq]=omcs.back();
                         }
-                        else if(obs_type==GNSS_OBS_PHASE){
+                        else if(!obs_code){
                             sat_info->post_res_L[frq]=omcs.back();
                         }
                     }
 
-                    Ri.push_back(GnssMeasVar(C,(obs_type==GNSS_OBS_CODE?GNSS_OBS_CODE:GNSS_OBS_PHASE),*ref_sat_info));
-                    Rj.push_back(GnssMeasVar(C,(obs_type==GNSS_OBS_CODE?GNSS_OBS_CODE:GNSS_OBS_PHASE),*sat_info));
+                    Ri.push_back(GnssMeasVar(C,(obs_code?GNSS_OBS_CODE:GNSS_OBS_PHASE),*ref_sat_info));
+                    Rj.push_back(GnssMeasVar(C,(obs_code?GNSS_OBS_CODE:GNSS_OBS_PHASE),*sat_info));
 
                     num_L_++;
                     nobs[isys][iobs]++;
@@ -1678,10 +1728,11 @@ namespace PPPLib{
         omc_L_=Map<VectorXd>(omcs.data(),num_L_);
 
         H.clear();Ri.clear();Rj.clear();R.clear();omcs.clear();
+        return num_L_;
     }
 
     bool cPpkSolver::ValidObs(int i, int nf, int f) {
-        return rover_res[i*nf+f]!=0.0&&base_res[i*nf+f]!=0.0;
+        return (rover_res[i*nf*2+f]!=0.0&&base_res[i*nf*2+f]!=0.0&&(f<nf||rover_res[f-nf+i*nf*2]!=0.0&&base_res[f-nf+i*nf*2]!=0.0));
     }
 
     bool cPpkSolver::MatchBaseObs(cTime t) {
@@ -1710,7 +1761,7 @@ namespace PPPLib{
         for(int i=0,j=0;i<epoch_sat_info_collect_.size()&&j<base_sat_info_collect_.size();i++,j++){
             rover=epoch_sat_info_collect_.at(i);
             base=base_sat_info_collect_.at(j);
-            if(rover.stat!=SAT_USED||base.stat!=SAT_USED) continue;
+//            if(rover.stat!=SAT_USED||base.stat!=SAT_USED) continue;
             if(rover.sat.sat_.no<base.sat.sat_.no) j--;
             else if(rover.sat.sat_.no>base.sat.sat_.no) i--;
             else if(rover.el_az[0]>=C.gnssC.ele_min*D2R){
@@ -1784,7 +1835,7 @@ namespace PPPLib{
             gnss_obs_operator_.SmoothMw(C,sat_info, base_sat);
         }
 
-#if 0
+#if 1
         for(int i=0;i<epoch_sat_info_collect_.size();i++){
             sat_info=&epoch_sat_info_collect_.at(i);
 
@@ -1814,14 +1865,14 @@ namespace PPPLib{
     void cPpkSolver::PosUpdate(tPPPLibConf  C) {
         if(para_.NumPos()<=0) return;
 
-        Vector3d q(SQR(60),SQR(60),SQR(60));
+        Vector3d q(SQR(30),SQR(30),SQR(30));
         int ip=para_.IndexPos();
         if((SQR(full_x_[ip])+SQR(full_x_[ip+1])+SQR(full_x_[ip+1]))==0.0){
-            for(int i=0;i<3;i++) InitX(spp_solver_->ppplib_sol_.pos[i],SQR(60.0),ip+i);
+            for(int i=0;i<3;i++) InitX(spp_solver_->ppplib_sol_.pos[i],SQR(30.0),ip+i,full_x_.data(),full_Px_.data());
         }else{
             if(C.mode_opt==MODE_OPT_STATIC) return;
             if(C.mode_opt==MODE_OPT_KINE_SIM||C.mode_opt==MODE_OPT_KINEMATIC){
-                for(int i=0;i<3;i++) InitX(spp_solver_->ppplib_sol_.pos[i],SQR(60.0),ip+i);
+                for(int i=0;i<3;i++) InitX(spp_solver_->ppplib_sol_.pos[i],SQR(30.0),ip+i,full_x_.data(),full_Px_.data());
             }
         }
     }
@@ -1837,17 +1888,18 @@ namespace PPPLib{
     void cPpkSolver::AmbUpdate(tPPPLibConf C, double tt,vector<int>& ir,vector<int>& ib,vector<int>& cmn_sat_no) {
         if(para_.NumAmb()<=0) return;
 
-        int reset,ia,slip,rejc;
+        int i,j,reset,ia,slip,rejc;
+        double offset;
         for(int f=0;f<para_.GetGnssUsedFrqs();f++){
 
-            for(int i=0;i<MAX_SAT_NUM;i++){
+            for(i=0;i<MAX_SAT_NUM;i++){
                 ia=para_.IndexAmb(f,i+1);
                 reset=previous_sat_info_[i].outc[f]>C.gnssC.max_out;
                 if(C.gnssC.ar_mode==AR_INST&&full_x_[ia]!=0.0){
-                    InitX(0.0,0.0,ia);
+                    InitX(0.0,0.0,ia,full_x_.data(),full_Px_.data());
                 }
                 else if(reset&&full_x_[ia]!=0.0){
-                    InitX(0.0,0.0,ia);
+                    InitX(0.0,0.0,ia,full_x_.data(),full_Px_.data());
                     previous_sat_info_[i].outc[f]=0;
                 }
                 if(C.gnssC.ar_mode!=AR_INST&&reset){
@@ -1855,14 +1907,14 @@ namespace PPPLib{
                 }
             }
 
-            for(int i=0;i<cmn_sat_no.size();i++){
+            for(i=0;i<cmn_sat_no.size();i++){
                 ia=para_.IndexAmb(f,cmn_sat_no[i]);
                 full_Px_(ia,ia)+=SQR(C.gnssC.ait_psd[0])*fabs(tt);
             }
 
-            double cp,pr,amb;
+            double cp,pr,amb,com_offset;
             vector<double>bias;
-            for(int i=0,j=0;i<cmn_sat_no.size();i++){
+            for(i=0,j=0,offset=0.0;i<cmn_sat_no.size();i++){
                 if(C.gnssC.ion_opt!=ION_IF){
                     cp=gnss_obs_operator_.GnssSdObs(epoch_sat_info_collect_[ir[i]],base_sat_info_collect_[ib[i]],f,GNSS_OBS_PHASE);
                     pr=gnss_obs_operator_.GnssSdObs(epoch_sat_info_collect_[ir[i]],base_sat_info_collect_[ib[i]],f,GNSS_OBS_CODE);
@@ -1880,21 +1932,26 @@ namespace PPPLib{
                     }
                     amb=cp*epoch_sat_info_collect_[ir[i]].lam[f]-pr;
                     bias.push_back(amb);
+
                 }
                 else{
 
                 }
 
+                ia=para_.IndexAmb(f,cmn_sat_no[i]);
+                if(full_x_[ia]!=0.0){
+                    offset+=amb-full_x_[ia]*epoch_sat_info_collect_[ir[i]].lam[f];
+                    j++;
+                }
             }
 
-//            cout<<full_Px_<<endl;
-//            cout<<full_x_.transpose()<<endl;
+            com_offset=j>0?offset/j:0.0;
 
-            for(int i=0;i<cmn_sat_no.size();i++){
+            for(i=0;i<cmn_sat_no.size();i++){
                 ia=para_.IndexAmb(f,cmn_sat_no[i]);
                 if(bias[i]==0.0||full_x_[ia]!=0.0) continue;
-                InitX(bias[i]/epoch_sat_info_collect_.at(ir[i]).lam[f],SQR(60.0),ia);
-                LOG(DEBUG)<<epoch_sat_info_collect_.at(ir[i]).t_tag.GetTimeStr(1)<<" "<<epoch_sat_info_collect_.at(ir[i]).sat.sat_.id<<" L"<<f+1<<" AMBIGUITY INITIALIZED "<<bias[i];
+                InitX((bias[i]-com_offset)/epoch_sat_info_collect_.at(ir[i]).lam[f],SQR(30.0),ia,full_x_.data(),full_Px_.data());
+                LOG(DEBUG)<<epoch_sat_info_collect_.at(ir[i]).t_tag.GetTimeStr(1)<<" "<<epoch_sat_info_collect_.at(ir[i]).sat.sat_.id<<" L"<<f+1<<" AMBIGUITY INITIALIZED "<<(bias[i]-com_offset)/epoch_sat_info_collect_[ir[i]].lam[f];
             }
             bias.clear();
         }

@@ -26,8 +26,7 @@ namespace PPPLib {
         dx_=HTWH.inverse()*HTWL;
         for(int i=0;i<nx;i++) X[i]+=dx_[i];
 
-        double n=dx_.norm();
-        flag=dx_.norm()<1E-6;
+        flag=dx_.norm()<1E-4;
         if(flag) v_=H.transpose()*dx_-L;
 
         return flag;
@@ -58,13 +57,13 @@ namespace PPPLib {
             for(j=0;j<nl;j++) H_(i,j)=H(zip_idx[i],j);
         }
 
-//        cout<<X_.transpose()<<endl;
-//
-//        cout<<H_.transpose()<<endl;
-//
-//        cout<<Px_.transpose()<<endl;
-//
-//        cout<<R<<endl;
+        cout<<endl;
+
+        cout<<Px_.transpose()<<endl<<endl;
+
+        cout<<H_.transpose()<<endl<<endl;
+
+        cout<<R<<endl<<endl;
 
         MatrixXd K=Px_*H_*(H_.transpose()*Px_*H_+R).inverse();
         dx_=K*L;
@@ -72,9 +71,9 @@ namespace PPPLib {
 //        Px_=(I-K*H_.transpose())*Px_*(I-K*H_.transpose()).transpose()+K*R*K.transpose();
         Px_=(I-K*H_.transpose())*Px_;
 
-        //保持方差正定
-//        MatrixXd cov_fixed=(Px_+Px_.transpose())/2.0;
-//        Px_=cov_fixed;
+        cout<<X_.transpose()<<endl<<endl;
+        cout<<Px_.transpose()<<endl<<endl;
+
 
         for(int i=0;i<zip_idx.size();i++) X_[i]+=dx_[i];
 

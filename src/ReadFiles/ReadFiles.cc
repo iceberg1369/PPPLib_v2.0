@@ -367,7 +367,7 @@ namespace PPPLib{
         double val[MAX_GNSS_OBS_TYPE]={0};
         unsigned char lli[MAX_GNSS_OBS_TYPE]={0};
         string sat_id;
-        int i,j,num;
+        int i,j,num=0;
         bool stat=true;
 
         if(rnx_ver_>2.99){
@@ -393,6 +393,12 @@ namespace PPPLib{
 
         if(!stat) return false;
 
+
+        for(i=0;i<MAX_GNSS_FRQ_NUM;i++){
+            obs.P[i]=obs.L[i]=0.0;obs.D[i]=0.0f;
+            obs.SNR[i]=obs.LLI[i]=obs.code[i]=0;
+        }
+
         for(i=0,j=rnx_ver_<=2.99?0:3;i<gnss_signal->GetGnssSignal()->n&&j+15<line_str_.length();i++,j+=16){
             Str2Double(line_str_.substr(j,14),val[i]);
             val[i]+=gnss_signal->GetGnssSignal()->shift[i];
@@ -408,6 +414,42 @@ namespace PPPLib{
             if(gnss_signal->GetGnssSignal()->type[i]==0&&p[i]==1) l[m++]=i;
         }
 
+        if(n>=2){
+            if(val[k[0]]==0.0&&val[k[1]]==0.0){
+                p[k[0]]=-1;p[k[1]]=-1;
+            }
+            else if(val[k[0]]!=0.0&&val[k[1]]==0.0){
+                p[k[0]]=0;p[k[1]]=-1;
+            }
+            else if(val[k[0]]==0.0&&val[k[1]]!=0.0){
+                p[k[0]]=-1;p[k[1]]=0;
+            }
+            else if(gnss_signal->GetGnssSignal()->pri[k[1]]>gnss_signal->GetGnssSignal()->pri[k[0]]){
+                p[k[1]]=0;p[k[0]]=-1;
+            }
+            else{
+                p[k[0]]=0;p[k[1]]=-1;
+            }
+
+        }
+        if(m>=2){
+            if(val[l[0]]==0.0&&val[l[1]]==0.0){
+                p[l[0]]=-1;p[l[1]]=-1;
+            }
+            else if(val[l[0]]!=0.0&&val[l[1]]==0.0){
+                p[l[0]]=1;p[l[1]]=-1;
+            }
+            else if(val[l[0]]==0.0&&val[l[1]]!=0.0){
+                p[l[0]]=-1;p[l[1]]=1;
+            }
+            else if(gnss_signal->GetGnssSignal()->pri[l[1]]>gnss_signal->GetGnssSignal()->pri[l[0]]){
+                p[l[1]]=1;p[l[0]]=-1;
+            }
+            else{
+                p[l[0]]=1;p[l[1]]=-1;
+            }
+        }
+
         for(i=0;i<gnss_signal->GetGnssSignal()->n;i++){
             if(p[i]<0||val[i]==0.0) continue;
             switch(gnss_signal->GetGnssSignal()->type[i]){
@@ -420,9 +462,8 @@ namespace PPPLib{
         return true;
     }
 
-    int cReadGnssObs::ReadObsBody() {
+    int cReadGnssObs::ReadObsBody(tEpochSatUnit& epoch_sat_data) {
         int line_idx=0,num_sat=0,n,obs_flag=0;
-        tEpochSatUnit epoch_sat_data={nullptr};
 
         while(getline(inf_,line_str_)&&!inf_.eof()){
             tSatObsUnit sat_data={0};
@@ -441,9 +482,6 @@ namespace PPPLib{
                 }
             }
             if(++line_idx>num_sat){
-                epoch_sat_data.sat_num=epoch_sat_data.epoch_data.size();
-                SortEpochSatData(epoch_sat_data);
-                gnss_data_->GetGnssObs().push_back(epoch_sat_data);
                 return num_sat;
             }
         }
@@ -594,6 +632,8 @@ namespace PPPLib{
     }
 
     bool cReadGnssObs::Reading() {
+        unsigned char slips[MAX_SAT_NUM][MAX_GNSS_FRQ_NUM]={{0}};
+
         if(!OpenFile()){
             LOG(ERROR)<<"Open gnss obs file error: "<<file_;
             return false;
@@ -602,8 +642,32 @@ namespace PPPLib{
         if(!ReadHead()) return false;
 
         int epoch_sat_num=0;
-        while((epoch_sat_num=ReadObsBody())>=0){
+        tEpochSatUnit epoch_sat_data={0};
+        int kk=0;
+        while((epoch_sat_num=ReadObsBody(epoch_sat_data))>=0){
             if(inf_.eof()) break;
+            kk++;
+            for(int i=0;i<epoch_sat_data.sat_num;i++){
+                if(time_sys_==TIME_utc) epoch_sat_data.obs_time.Utc2Gpst();
+
+                for(int f=0;f<MAX_GNSS_FRQ_NUM;f++){
+                    if(epoch_sat_data.epoch_data[i].LLI[f]&1) slips[epoch_sat_data.epoch_data[i].sat.sat_.no-1][f]|=0x01;
+                }
+            }
+
+            for(int i=0;i<epoch_sat_data.sat_num;i++){
+                for(int f=0;f<MAX_GNSS_FRQ_NUM;f++){
+                    if(slips[epoch_sat_data.epoch_data[i].sat.sat_.no-1][f]&1) epoch_sat_data.epoch_data[i].LLI[f]|=0x01;
+                    slips[epoch_sat_data.epoch_data[i].sat.sat_.no-1][f]=0;
+                }
+            }
+
+            epoch_sat_data.sat_num=epoch_sat_data.epoch_data.size();
+            SortEpochSatData(epoch_sat_data);
+            gnss_data_->GetGnssObs().push_back(epoch_sat_data);
+
+            epoch_sat_data.sat_num=0;
+            epoch_sat_data.epoch_data.clear();
         }
 
         gnss_data_->epoch_num=gnss_data_->GetGnssObs().size();

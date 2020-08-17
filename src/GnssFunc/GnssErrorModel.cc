@@ -38,6 +38,8 @@ namespace PPPLib{
     }
 
     Vector2d cTrpDelayModel::GetTrpError(double humi,double* x,int it) {
+        for(int i=0;i<4;i++) sat_info_->trp_wet_delay[i]=0.0;
+        for(int i=0;i<2;i++) sat_info_->trp_dry_delay[i]=0.0;
         if(PPPLibC_.gnssC.trp_opt==TRP_SAAS) GetSaasTrp(humi, nullptr,nullptr);
         else if(PPPLibC_.gnssC.trp_opt>=TRP_EST_WET){
             EstTrpWet(humi,x,it);
@@ -49,6 +51,8 @@ namespace PPPLib{
     void cTrpDelayModel::UpdateSatInfo() {
         sat_info_->trp_dry_delay=slant_trp_dry_;
         sat_info_->trp_wet_delay=slant_trp_wet_;
+        for(int i=0;i<4;i++) slant_trp_wet_[i]=0.0;
+        slant_trp_dry_[0]=slant_trp_dry_[1]=0.0;
     }
 
     void cTrpDelayModel::InitTrpModel(Vector3d &blh) {
@@ -150,6 +154,7 @@ namespace PPPLib{
     cIonDelayModel::~cIonDelayModel() {}
 
     Vector2d cIonDelayModel::GetIonError() {
+        sat_info_->ion_delay[0]=sat_info_->ion_delay[1]=0.0;
         if(PPPLibC_.gnssC.ion_opt==ION_IF) IonFreeModel();
         else if(PPPLibC_.gnssC.ion_opt==ION_KLB) KlobModel();
         else if(PPPLibC_.gnssC.ion_opt>ION_EST){
@@ -165,6 +170,7 @@ namespace PPPLib{
 
     void cIonDelayModel::UpdateSatInfo() {
         sat_info_->ion_delay=ion_delay_;
+        ion_delay_[0]=ion_delay_[1]=0.0;
     }
 
     void cIonDelayModel::InitIondelayModel(double ion_para[NSYS][8]) {
